@@ -1,0 +1,26 @@
+# dependencies
+node_modules/
+frontend/**/node_modules/
+
+# builds
+dist/
+build/
+bin/
+obj/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vs/
+.vscode/
+.idea/
+
+# local extracted course materials
+_materials_extract/
+
+# logs
+*.log
+npm-debug.log*
