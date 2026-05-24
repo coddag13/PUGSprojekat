@@ -5,12 +5,12 @@ using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
 using System.Fabric;
 using TravelPlanner.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 namespace TravelPlanner.WebApi
 {
-    /// <summary>
-    /// The FabricRuntime creates an instance of this class for each service type instance.
-    /// </summary>
     internal sealed class WebApi : StatelessService
     {
         public WebApi(StatelessServiceContext context)
@@ -18,10 +18,6 @@ namespace TravelPlanner.WebApi
         {
         }
 
-        /// <summary>
-        /// Optional override to create listeners (like tcp, http) for this service instance.
-        /// </summary>
-        /// <returns>The collection of listeners.</returns>
         protected override IEnumerable<ServiceInstanceListener> CreateServiceInstanceListeners()
         {
             return new ServiceInstanceListener[]
@@ -36,6 +32,25 @@ namespace TravelPlanner.WebApi
                         builder.Services.AddSingleton<StatelessServiceContext>(serviceContext);
                         builder.Services.AddDbContext<TravelPlannerDbContext>(options =>
                             options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+                        var jwtKey = builder.Configuration["Jwt:Key"]!;
+                        var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
+                        var jwtAudience = builder.Configuration["Jwt:Audience"]!;
+
+                        builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+                            .AddJwtBearer(options =>
+                            {
+                                options.TokenValidationParameters = new TokenValidationParameters
+                                {
+                                    ValidateIssuer = true,
+                                    ValidateAudience = true,
+                                    ValidateLifetime = true,
+                                    ValidateIssuerSigningKey = true,
+                                    ValidIssuer = jwtIssuer,
+                                    ValidAudience = jwtAudience,
+                                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+                                };
+                            });
 
                         builder.WebHost
                             .UseKestrel()
@@ -55,6 +70,7 @@ namespace TravelPlanner.WebApi
                             app.UseSwaggerUI();
                         }
 
+                        app.UseAuthentication();
                         app.UseAuthorization();
                         app.MapControllers();
 

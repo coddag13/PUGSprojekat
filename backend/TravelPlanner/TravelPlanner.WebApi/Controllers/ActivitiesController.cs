@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TravelPlanner.Infrastructure.Entities;
 using TravelPlanner.Infrastructure.Persistence;
@@ -6,6 +7,7 @@ using TravelPlanner.WebApi.DTOs.Activities;
 
 namespace TravelPlanner.WebApi.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/travel-plans/{travelPlanId:guid}/activities")]
     public class ActivitiesController : ControllerBase

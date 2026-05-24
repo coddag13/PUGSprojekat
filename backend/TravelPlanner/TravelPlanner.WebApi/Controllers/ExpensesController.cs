@@ -3,9 +3,11 @@ using Microsoft.EntityFrameworkCore;
 using TravelPlanner.Infrastructure.Entities;
 using TravelPlanner.Infrastructure.Persistence;
 using TravelPlanner.WebApi.DTOs.Expenses;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TravelPlanner.WebApi.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/travel-plans/{travelPlanId:guid}/expenses")]
     public class ExpensesController : ControllerBase

@@ -3,9 +3,13 @@ using Microsoft.EntityFrameworkCore;
 using TravelPlanner.Infrastructure.Entities;
 using TravelPlanner.Infrastructure.Persistence;
 using TravelPlanner.WebApi.DTOs.TravelPlans;
+using Microsoft.AspNetCore.Authorization;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
 
 namespace TravelPlanner.WebApi.Controllers
 {
+    [Authorize]
     [ApiController]
     [Route("api/travel-plans")]
     public class TravelPlansController : ControllerBase
@@ -17,7 +21,6 @@ namespace TravelPlanner.WebApi.Controllers
             _context = context;
         }
 
-        // GET api/travel-plans
         [HttpGet]
         public async Task<ActionResult<IEnumerable<TravelPlanResponseDto>>> GetAll()
         {
@@ -26,7 +29,6 @@ namespace TravelPlanner.WebApi.Controllers
             return Ok(result);
         }
 
-        // GET api/travel-plans/{id}
         [HttpGet("{id:guid}")]
         public async Task<ActionResult<TravelPlanResponseDto>> GetById(Guid id)
         {
@@ -35,7 +37,6 @@ namespace TravelPlanner.WebApi.Controllers
             return Ok(MapToResponse(plan));
         }
 
-        // POST api/travel-plans
         [HttpPost]
         public async Task<ActionResult<TravelPlanResponseDto>> Create(CreateTravelPlanDto dto)
         {
@@ -43,6 +44,10 @@ namespace TravelPlanner.WebApi.Controllers
                 return BadRequest("End date cannot be before start date.");
             if (dto.PlannedBudget < 0)
                 return BadRequest("Budget cannot be negative.");
+
+            var ownerIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)
+                               ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+            var ownerId = Guid.Parse(ownerIdClaim!.Value);
 
             var plan = new TravelPlan
             {
@@ -53,7 +58,7 @@ namespace TravelPlanner.WebApi.Controllers
                 EndDate = dto.EndDate,
                 PlannedBudget = dto.PlannedBudget,
                 Notes = dto.Notes,
-                OwnerId = Guid.Empty // privremeno, zamijeniće se kad dodamo auth
+                OwnerId = ownerId
             };
 
             _context.TravelPlans.Add(plan);
@@ -62,7 +67,6 @@ namespace TravelPlanner.WebApi.Controllers
             return CreatedAtAction(nameof(GetById), new { id = plan.Id }, MapToResponse(plan));
         }
 
-        // PUT api/travel-plans/{id}
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid id, UpdateTravelPlanDto dto)
         {
@@ -85,7 +89,6 @@ namespace TravelPlanner.WebApi.Controllers
             return NoContent();
         }
 
-        // DELETE api/travel-plans/{id}
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {
