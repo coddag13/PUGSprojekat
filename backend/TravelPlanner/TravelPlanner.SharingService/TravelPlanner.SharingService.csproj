@@ -11,6 +11,12 @@
     <SelfContained>True</SelfContained>
   </PropertyGroup>
 
+	<ItemGroup>
+		<None Update="appsettings.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+	
   <ItemGroup>
     <PackageReference Include="Microsoft.ServiceFabric.Services" Version="8.4.205-rc" />
   </ItemGroup>

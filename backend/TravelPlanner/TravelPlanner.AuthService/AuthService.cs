@@ -1,51 +1,138 @@
-using System;
-using System.Collections.Generic;
-using System.Fabric;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
+using BCrypt.Net;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
+using Microsoft.ServiceFabric.Services.Remoting.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
+using System.Fabric;
+using TravelPlanner.Common;
+using TravelPlanner.Common.Enums;
+using TravelPlanner.Common.Interfaces;
+using TravelPlanner.Common.Models;
+using TravelPlanner.Infrastructure.Entities;
+using TravelPlanner.Infrastructure.Persistence;
 
 namespace TravelPlanner.AuthService
 {
-    /// <summary>
-    /// An instance of this class is created for each service instance by the Service Fabric runtime.
-    /// </summary>
-    internal sealed class AuthService : StatelessService
+    internal sealed class AuthService : StatelessService, IAuthService
     {
-        public AuthService(StatelessServiceContext context)
-            : base(context)
-        { }
+        private readonly string _connectionString;
 
-        /// <summary>
-        /// Optional override to create listeners (e.g., TCP, HTTP) for this service replica to handle client or user requests.
-        /// </summary>
-        /// <returns>A collection of listeners.</returns>
-        protected override IEnumerable<ServiceInstanceListener> CreateServiceInstanceListeners()
+        public AuthService(StatelessServiceContext context) : base(context)
         {
-            return new ServiceInstanceListener[0];
+            var config = new ConfigurationBuilder()
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+                .Build();
+
+            _connectionString = config.GetConnectionString("DefaultConnection")
+                ?? throw new InvalidOperationException("DefaultConnection is not configured.");
         }
 
-        /// <summary>
-        /// This is the main entry point for your service instance.
-        /// </summary>
-        /// <param name="cancellationToken">Canceled when Service Fabric needs to shut down this service instance.</param>
-        protected override async Task RunAsync(CancellationToken cancellationToken)
+        protected override IEnumerable<ServiceInstanceListener> CreateServiceInstanceListeners()
         {
-            // TODO: Replace the following sample code with your own logic 
-            //       or remove this RunAsync override if it's not needed in your service.
+            return this.CreateServiceRemotingInstanceListeners();
+        }
 
-            long iterations = 0;
+        protected override Task RunAsync(CancellationToken cancellationToken)
+        {
+            return Task.CompletedTask;
+        }
 
-            while (true)
+        public async Task<ServiceResponse<UserData>> RegisterAsync(
+            string firstName,
+            string lastName,
+            string email,
+            string password)
+        {
+            firstName = firstName?.Trim() ?? string.Empty;
+            lastName = lastName?.Trim() ?? string.Empty;
+            email = NormalizeEmail(email);
+            password = password?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(firstName))
+                return ServiceResponse<UserData>.Fail("First name is required.");
+
+            if (string.IsNullOrWhiteSpace(lastName))
+                return ServiceResponse<UserData>.Fail("Last name is required.");
+
+            if (string.IsNullOrWhiteSpace(email))
+                return ServiceResponse<UserData>.Fail("Email is required.");
+
+            if (string.IsNullOrWhiteSpace(password))
+                return ServiceResponse<UserData>.Fail("Password is required.");
+
+            if (password.Length < 6)
+                return ServiceResponse<UserData>.Fail("Password must be at least 6 characters long.");
+
+            await using var db = CreateDbContext();
+
+            var emailExists = await db.Users.AnyAsync(u => u.Email == email);
+            if (emailExists)
+                return ServiceResponse<UserData>.Fail("Email is already in use.");
+
+            var user = new User
             {
-                cancellationToken.ThrowIfCancellationRequested();
+                Id = Guid.NewGuid(),
+                FirstName = firstName,
+                LastName = lastName,
+                Email = email,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(password),
+                Role = UserRole.User
+            };
 
-                ServiceEventSource.Current.ServiceMessage(this.Context, "Working-{0}", ++iterations);
+            db.Users.Add(user);
+            await db.SaveChangesAsync();
 
-                await Task.Delay(TimeSpan.FromSeconds(1), cancellationToken);
-            }
+            return ServiceResponse<UserData>.Ok(MapToUserData(user));
+        }
+
+        public async Task<ServiceResponse<UserData>> LoginAsync(string email, string password)
+        {
+            email = NormalizeEmail(email);
+            password = password?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+                return ServiceResponse<UserData>.Fail("Email and password are required.");
+
+            await using var db = CreateDbContext();
+
+            var user = await db.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user is null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
+                return ServiceResponse<UserData>.Fail("Invalid email or password.");
+
+            return ServiceResponse<UserData>.Ok(MapToUserData(user));
+        }
+
+        private TravelPlannerDbContext CreateDbContext()
+        {
+            var options = new DbContextOptionsBuilder<TravelPlannerDbContext>()
+                .UseSqlServer(_connectionString)
+                .Options;
+
+            return new TravelPlannerDbContext(options);
+        }
+
+        private static string NormalizeEmail(string? email)
+        {
+            return email?.Trim().ToLowerInvariant() ?? string.Empty;
+        }
+
+        private static UserData MapToUserData(User? user)
+        {
+            if (user is null)
+                throw new ArgumentNullException(nameof(user));
+
+            return new UserData
+            {
+                Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                Email = user.Email,
+                Role = user.Role.ToString()
+            };
         }
     }
 }
