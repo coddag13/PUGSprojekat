@@ -1,5 +1,6 @@
 function DestinationForm({
   form,
+  plan,
   error,
   saving,
   onChange,
@@ -51,6 +52,8 @@ function DestinationForm({
               name="arrivalDate"
               value={form.arrivalDate}
               onChange={onChange}
+              min={plan.startDate.slice(0, 10)}
+              max={plan.endDate.slice(0, 10)}
               required
             />
           </label>
@@ -65,7 +68,8 @@ function DestinationForm({
               name="departureDate"
               value={form.departureDate}
               onChange={onChange}
-              min={form.arrivalDate || undefined}
+              min={form.arrivalDate || plan.startDate.slice(0, 10)}
+              max={plan.endDate.slice(0, 10)}
               required
             />
           </label>

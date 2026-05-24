@@ -107,13 +107,13 @@ namespace TravelPlanner.PlanService
         }
 
         public async Task<bool> UpdatePlanAsync(
-            Guid id,
-            string title,
-            string description,
-            DateTime startDate,
-            DateTime endDate,
-            decimal plannedBudget,
-            string notes)
+    Guid id,
+    string title,
+    string description,
+    DateTime startDate,
+    DateTime endDate,
+    decimal plannedBudget,
+    string notes)
         {
             await using var db = CreateDbContext();
 
@@ -129,6 +129,31 @@ namespace TravelPlanner.PlanService
                 return false;
 
             if (endDate < startDate || plannedBudget < 0)
+                return false;
+
+            var activitiesOutsideRange = await db.PlanActivities.AnyAsync(a =>
+                a.TravelPlanId == id &&
+                (a.Date.Date < startDate.Date || a.Date.Date > endDate.Date));
+
+            if (activitiesOutsideRange)
+                return false;
+
+            var destinationsOutsideRange = await db.Destinations.AnyAsync(d =>
+                d.TravelPlanId == id &&
+                (d.ArrivalDate.Date < startDate.Date || d.DepartureDate.Date > endDate.Date));
+
+            if (destinationsOutsideRange)
+                return false;
+
+            var expensesOutsideRange = await db.Expenses.AnyAsync(e =>
+                e.TravelPlanId == id &&
+                (e.Date.Date < startDate.Date || e.Date.Date > endDate.Date));
+
+            if (expensesOutsideRange)
+                return false;
+
+            var committedAmount = await GetCommittedAmountAsync(db, id);
+            if (committedAmount > plannedBudget)
                 return false;
 
             plan.Title = title;
@@ -179,12 +204,12 @@ namespace TravelPlanner.PlanService
         }
 
         public async Task<ServiceResponse<DestinationData>> CreateDestinationAsync(
-            Guid travelPlanId,
-            string name,
-            string location,
-            DateTime arrivalDate,
-            DateTime departureDate,
-            string description)
+    Guid travelPlanId,
+    string name,
+    string location,
+    DateTime arrivalDate,
+    DateTime departureDate,
+    string description)
         {
             await using var db = CreateDbContext();
 
@@ -201,9 +226,19 @@ namespace TravelPlanner.PlanService
             if (departureDate < arrivalDate)
                 return ServiceResponse<DestinationData>.Fail("Departure date cannot be before arrival date.");
 
-            var planExists = await db.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists)
+            var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
+            if (plan is null)
                 return ServiceResponse<DestinationData>.Fail("Travel plan not found.");
+
+            if (arrivalDate.Date < plan.StartDate.Date)
+                return ServiceResponse<DestinationData>.Fail("Arrival date cannot be before the start of the travel plan.");
+
+            if (departureDate.Date > plan.EndDate.Date)
+                return ServiceResponse<DestinationData>.Fail("Departure date cannot be after the end of the travel plan.");
+
+            var overlaps = await HasDestinationOverlapAsync(db, travelPlanId, arrivalDate, departureDate);
+            if (overlaps)
+                return ServiceResponse<DestinationData>.Fail("Destination dates overlap with an existing destination.");
 
             var destination = new Destination
             {
@@ -223,13 +258,13 @@ namespace TravelPlanner.PlanService
         }
 
         public async Task<bool> UpdateDestinationAsync(
-            Guid travelPlanId,
-            Guid id,
-            string name,
-            string location,
-            DateTime arrivalDate,
-            DateTime departureDate,
-            string description)
+     Guid travelPlanId,
+     Guid id,
+     string name,
+     string location,
+     DateTime arrivalDate,
+     DateTime departureDate,
+     string description)
         {
             await using var db = CreateDbContext();
 
@@ -249,6 +284,20 @@ namespace TravelPlanner.PlanService
             if (departureDate < arrivalDate)
                 return false;
 
+            var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
+            if (plan is null)
+                return false;
+
+            if (arrivalDate.Date < plan.StartDate.Date)
+                return false;
+
+            if (departureDate.Date > plan.EndDate.Date)
+                return false;
+
+            var overlaps = await HasDestinationOverlapAsync(db, travelPlanId, arrivalDate, departureDate, id);
+            if (overlaps)
+                return false;
+
             destination.Name = name;
             destination.Location = location;
             destination.ArrivalDate = arrivalDate;
@@ -257,6 +306,21 @@ namespace TravelPlanner.PlanService
 
             await db.SaveChangesAsync();
             return true;
+        }
+
+
+        private static async Task<bool> HasDestinationOverlapAsync(
+    TravelPlannerDbContext db,
+    Guid travelPlanId,
+    DateTime arrivalDate,
+    DateTime departureDate,
+    Guid? excludeDestinationId = null)
+        {
+            return await db.Destinations.AnyAsync(d =>
+                d.TravelPlanId == travelPlanId &&
+                (!excludeDestinationId.HasValue || d.Id != excludeDestinationId.Value) &&
+                arrivalDate.Date <= d.DepartureDate.Date &&
+                departureDate.Date >= d.ArrivalDate.Date);
         }
 
         public async Task<bool> DeleteDestinationAsync(Guid travelPlanId, Guid id)
@@ -269,9 +333,86 @@ namespace TravelPlanner.PlanService
             if (destination is null)
                 return false;
 
+            var hasActivities = await db.PlanActivities.AnyAsync(a =>
+                a.TravelPlanId == travelPlanId && a.DestinationId == id);
+
+            if (hasActivities)
+                return false;
+
             db.Destinations.Remove(destination);
             await db.SaveChangesAsync();
             return true;
+        }
+
+        private static async Task<bool> HasActivityScheduleConflictAsync(
+    TravelPlannerDbContext db,
+    Guid travelPlanId,
+    DateTime date,
+    TimeSpan time,
+    Guid? excludeActivityId = null)
+        {
+            return await db.PlanActivities.AnyAsync(a =>
+                a.TravelPlanId == travelPlanId &&
+                (!excludeActivityId.HasValue || a.Id != excludeActivityId.Value) &&
+                a.Date.Date == date.Date &&
+                a.Time == time);
+        }
+
+        private static async Task<decimal> GetCommittedAmountAsync(
+            TravelPlannerDbContext db,
+            Guid travelPlanId,
+            Guid? excludeActivityId = null,
+            Guid? excludeExpenseId = null)
+        {
+            var activitiesQuery = db.PlanActivities.Where(a => a.TravelPlanId == travelPlanId);
+            if (excludeActivityId.HasValue)
+            {
+                activitiesQuery = activitiesQuery.Where(a => a.Id != excludeActivityId.Value);
+            }
+
+            var expensesQuery = db.Expenses.Where(e => e.TravelPlanId == travelPlanId);
+            if (excludeExpenseId.HasValue)
+            {
+                expensesQuery = expensesQuery.Where(e => e.Id != excludeExpenseId.Value);
+            }
+
+            var activitiesTotal = await activitiesQuery
+                .Select(a => (decimal?)a.EstimatedCost)
+                .SumAsync() ?? 0m;
+
+            var expensesTotal = await expensesQuery
+                .Select(e => (decimal?)e.Amount)
+                .SumAsync() ?? 0m;
+
+            return activitiesTotal + expensesTotal;
+        }
+
+        private static async Task<bool> WouldExceedBudgetWithActivityAsync(
+            TravelPlannerDbContext db,
+            Guid travelPlanId,
+            decimal newActivityCost,
+            Guid? excludeActivityId = null)
+        {
+            var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
+            if (plan is null)
+                return true;
+
+            var committedAmount = await GetCommittedAmountAsync(db, travelPlanId, excludeActivityId: excludeActivityId);
+            return committedAmount + newActivityCost > plan.PlannedBudget;
+        }
+
+        private static async Task<bool> WouldExceedBudgetWithExpenseAsync(
+            TravelPlannerDbContext db,
+            Guid travelPlanId,
+            decimal newExpenseAmount,
+            Guid? excludeExpenseId = null)
+        {
+            var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
+            if (plan is null)
+                return true;
+
+            var committedAmount = await GetCommittedAmountAsync(db, travelPlanId, excludeExpenseId: excludeExpenseId);
+            return committedAmount + newExpenseAmount > plan.PlannedBudget;
         }
 
         public async Task<List<ActivityData>> GetActivitiesAsync(Guid travelPlanId)
@@ -298,15 +439,15 @@ namespace TravelPlanner.PlanService
         }
 
         public async Task<ServiceResponse<ActivityData>> CreateActivityAsync(
-            Guid travelPlanId,
-            Guid? destinationId,
-            string name,
-            DateTime date,
-            TimeSpan time,
-            string location,
-            string description,
-            decimal estimatedCost,
-            ActivityStatus status)
+    Guid travelPlanId,
+    Guid? destinationId,
+    string name,
+    DateTime date,
+    TimeSpan time,
+    string location,
+    string description,
+    decimal estimatedCost,
+    ActivityStatus status)
         {
             await using var db = CreateDbContext();
 
@@ -317,21 +458,41 @@ namespace TravelPlanner.PlanService
             if (string.IsNullOrWhiteSpace(name))
                 return ServiceResponse<ActivityData>.Fail("Activity name is required.");
 
+            if (string.IsNullOrWhiteSpace(location))
+                return ServiceResponse<ActivityData>.Fail("Activity location is required.");
+
             if (estimatedCost < 0)
                 return ServiceResponse<ActivityData>.Fail("Estimated cost cannot be negative.");
 
-            var planExists = await db.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists)
+            if (!Enum.IsDefined(typeof(ActivityStatus), status))
+                return ServiceResponse<ActivityData>.Fail("Invalid activity status.");
+
+            var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
+            if (plan is null)
                 return ServiceResponse<ActivityData>.Fail("Travel plan not found.");
+
+            if (date.Date < plan.StartDate.Date || date.Date > plan.EndDate.Date)
+                return ServiceResponse<ActivityData>.Fail("Activity date must be within the travel plan period.");
 
             if (destinationId.HasValue)
             {
-                var destinationExists = await db.Destinations
-                    .AnyAsync(d => d.Id == destinationId.Value && d.TravelPlanId == travelPlanId);
+                var destination = await db.Destinations
+                    .FirstOrDefaultAsync(d => d.Id == destinationId.Value && d.TravelPlanId == travelPlanId);
 
-                if (!destinationExists)
+                if (destination is null)
                     return ServiceResponse<ActivityData>.Fail("Destination not found in this travel plan.");
+
+                if (date.Date < destination.ArrivalDate.Date || date.Date > destination.DepartureDate.Date)
+                    return ServiceResponse<ActivityData>.Fail("Activity date must be within the selected destination period.");
             }
+
+            var hasConflict = await HasActivityScheduleConflictAsync(db, travelPlanId, date, time);
+            if (hasConflict)
+                return ServiceResponse<ActivityData>.Fail("Another activity already exists at the same date and time.");
+
+            var wouldExceedBudget = await WouldExceedBudgetWithActivityAsync(db, travelPlanId, estimatedCost);
+            if (wouldExceedBudget)
+                return ServiceResponse<ActivityData>.Fail("This activity would exceed the planned budget.");
 
             var activity = new PlanActivity
             {
@@ -354,16 +515,16 @@ namespace TravelPlanner.PlanService
         }
 
         public async Task<bool> UpdateActivityAsync(
-            Guid travelPlanId,
-            Guid id,
-            Guid? destinationId,
-            string name,
-            DateTime date,
-            TimeSpan time,
-            string location,
-            string description,
-            decimal estimatedCost,
-            ActivityStatus status)
+    Guid travelPlanId,
+    Guid id,
+    Guid? destinationId,
+    string name,
+    DateTime date,
+    TimeSpan time,
+    string location,
+    string description,
+    decimal estimatedCost,
+    ActivityStatus status)
         {
             await using var db = CreateDbContext();
 
@@ -377,17 +538,41 @@ namespace TravelPlanner.PlanService
             location = location?.Trim() ?? string.Empty;
             description = description?.Trim() ?? string.Empty;
 
-            if (string.IsNullOrWhiteSpace(name) || estimatedCost < 0)
+            if (string.IsNullOrWhiteSpace(name) || string.IsNullOrWhiteSpace(location))
+                return false;
+
+            if (estimatedCost < 0)
+                return false;
+
+            if (!Enum.IsDefined(typeof(ActivityStatus), status))
+                return false;
+
+            var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
+            if (plan is null)
+                return false;
+
+            if (date.Date < plan.StartDate.Date || date.Date > plan.EndDate.Date)
                 return false;
 
             if (destinationId.HasValue)
             {
-                var destinationExists = await db.Destinations
-                    .AnyAsync(d => d.Id == destinationId.Value && d.TravelPlanId == travelPlanId);
+                var destination = await db.Destinations
+                    .FirstOrDefaultAsync(d => d.Id == destinationId.Value && d.TravelPlanId == travelPlanId);
 
-                if (!destinationExists)
+                if (destination is null)
+                    return false;
+
+                if (date.Date < destination.ArrivalDate.Date || date.Date > destination.DepartureDate.Date)
                     return false;
             }
+
+            var hasConflict = await HasActivityScheduleConflictAsync(db, travelPlanId, date, time, id);
+            if (hasConflict)
+                return false;
+
+            var wouldExceedBudget = await WouldExceedBudgetWithActivityAsync(db, travelPlanId, estimatedCost, id);
+            if (wouldExceedBudget)
+                return false;
 
             activity.DestinationId = destinationId;
             activity.Name = name;
@@ -441,12 +626,12 @@ namespace TravelPlanner.PlanService
         }
 
         public async Task<ServiceResponse<ExpenseData>> CreateExpenseAsync(
-            Guid travelPlanId,
-            string name,
-            ExpenseCategory category,
-            decimal amount,
-            DateTime date,
-            string description)
+     Guid travelPlanId,
+     string name,
+     ExpenseCategory category,
+     decimal amount,
+     DateTime date,
+     string description)
         {
             await using var db = CreateDbContext();
 
@@ -459,9 +644,19 @@ namespace TravelPlanner.PlanService
             if (amount < 0)
                 return ServiceResponse<ExpenseData>.Fail("Expense amount cannot be negative.");
 
-            var planExists = await db.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists)
+            if (!Enum.IsDefined(typeof(ExpenseCategory), category))
+                return ServiceResponse<ExpenseData>.Fail("Invalid expense category.");
+
+            var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
+            if (plan is null)
                 return ServiceResponse<ExpenseData>.Fail("Travel plan not found.");
+
+            if (date.Date < plan.StartDate.Date || date.Date > plan.EndDate.Date)
+                return ServiceResponse<ExpenseData>.Fail("Expense date must be within the travel plan period.");
+
+            var wouldExceedBudget = await WouldExceedBudgetWithExpenseAsync(db, travelPlanId, amount);
+            if (wouldExceedBudget)
+                return ServiceResponse<ExpenseData>.Fail("This expense would exceed the planned budget.");
 
             var expense = new Expense
             {
@@ -481,13 +676,13 @@ namespace TravelPlanner.PlanService
         }
 
         public async Task<bool> UpdateExpenseAsync(
-            Guid travelPlanId,
-            Guid id,
-            string name,
-            ExpenseCategory category,
-            decimal amount,
-            DateTime date,
-            string description)
+    Guid travelPlanId,
+    Guid id,
+    string name,
+    ExpenseCategory category,
+    decimal amount,
+    DateTime date,
+    string description)
         {
             await using var db = CreateDbContext();
 
@@ -501,6 +696,20 @@ namespace TravelPlanner.PlanService
             description = description?.Trim() ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(name) || amount < 0)
+                return false;
+
+            if (!Enum.IsDefined(typeof(ExpenseCategory), category))
+                return false;
+
+            var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
+            if (plan is null)
+                return false;
+
+            if (date.Date < plan.StartDate.Date || date.Date > plan.EndDate.Date)
+                return false;
+
+            var wouldExceedBudget = await WouldExceedBudgetWithExpenseAsync(db, travelPlanId, amount, id);
+            if (wouldExceedBudget)
                 return false;
 
             expense.Name = name;
@@ -564,6 +773,13 @@ namespace TravelPlanner.PlanService
             if (!planExists)
                 return ServiceResponse<ChecklistItemData>.Fail("Travel plan not found.");
 
+            var exists = await db.ChecklistItems.AnyAsync(c =>
+                c.TravelPlanId == travelPlanId &&
+                c.Text.ToLower() == text.ToLower());
+
+            if (exists)
+                return ServiceResponse<ChecklistItemData>.Fail("Checklist item already exists.");
+
             var item = new ChecklistItem
             {
                 Id = Guid.NewGuid(),
@@ -590,6 +806,14 @@ namespace TravelPlanner.PlanService
 
             text = text?.Trim() ?? string.Empty;
             if (string.IsNullOrWhiteSpace(text))
+                return false;
+
+            var duplicateExists = await db.ChecklistItems.AnyAsync(c =>
+                c.TravelPlanId == travelPlanId &&
+                c.Id != id &&
+                c.Text.ToLower() == text.ToLower());
+
+            if (duplicateExists)
                 return false;
 
             item.Text = text;

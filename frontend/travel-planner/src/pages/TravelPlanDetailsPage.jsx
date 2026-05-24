@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import ActivitiesSection from '../components/activities/ActivitiesSection'
 import DestinationsSection from '../components/destinations/DestinationsSection'
 import PlanDetailsHeader from '../components/travel-plan-details/PlanDetailsHeader'
 import PlanOverviewSection from '../components/travel-plan-details/PlanOverviewSection'
+import PlanTabs from '../components/travel-plan-details/PlanTabs'
 import { getTravelPlanById } from '../services/travelPlanService'
 
 function TravelPlanDetailsPage() {
@@ -10,6 +12,7 @@ function TravelPlanDetailsPage() {
   const [plan, setPlan] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [activeTab, setActiveTab] = useState('overview')
 
   useEffect(() => {
     const loadPlan = async () => {
@@ -59,12 +62,43 @@ function TravelPlanDetailsPage() {
     )
   }
 
+  const renderActiveSection = () => {
+    switch (activeTab) {
+      case 'overview':
+        return <PlanOverviewSection plan={plan} />
+      case 'destinations':
+        return <DestinationsSection travelPlanId={plan.id} plan={plan}/>
+      case 'activities':
+        return <ActivitiesSection travelPlanId={plan.id} plan={plan}/>
+      case 'expenses':
+        return (
+          <section className="rounded-[2rem] bg-white p-10 text-center text-slate-500 shadow-lg">
+            Sekcija troškova ide sljedeća.
+          </section>
+        )
+      case 'checklist':
+        return (
+          <section className="rounded-[2rem] bg-white p-10 text-center text-slate-500 shadow-lg">
+            Sekcija checklist ide sljedeća.
+          </section>
+        )
+      case 'sharing':
+        return (
+          <section className="rounded-[2rem] bg-white p-10 text-center text-slate-500 shadow-lg">
+            Sekcija dijeljenja ide sljedeća.
+          </section>
+        )
+      default:
+        return <PlanOverviewSection plan={plan} />
+    }
+  }
+
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
       <div className="mx-auto max-w-7xl space-y-6">
         <PlanDetailsHeader plan={plan} />
-        <PlanOverviewSection plan={plan} />
-        <DestinationsSection travelPlanId={plan.id} />
+        <PlanTabs activeTab={activeTab} onChange={setActiveTab} />
+        {renderActiveSection()}
       </div>
     </main>
   )

@@ -3,7 +3,7 @@ import { createDestination, getDestinations } from '../../services/destinationSe
 import DestinationForm from './DestinationForm'
 import DestinationList from './DestinationList'
 
-function DestinationsSection({ travelPlanId }) {
+function DestinationsSection({ travelPlanId, plan }) {
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -39,6 +39,18 @@ function DestinationsSection({ travelPlanId }) {
     setForm((current) => ({ ...current, [name]: value }))
   }
 
+  const hasOverlap = () => {
+    const newArrival = new Date(form.arrivalDate)
+    const newDeparture = new Date(form.departureDate)
+
+    return destinations.some((destination) => {
+      const existingArrival = new Date(destination.arrivalDate.slice(0, 10))
+      const existingDeparture = new Date(destination.departureDate.slice(0, 10))
+
+      return newArrival <= existingDeparture && newDeparture >= existingArrival
+    })
+  }
+
   const validateForm = () => {
     if (!form.name.trim()) {
       return 'Naziv destinacije je obavezan.'
@@ -52,8 +64,25 @@ function DestinationsSection({ travelPlanId }) {
       return 'Datum dolaska i odlaska su obavezni.'
     }
 
-    if (new Date(form.departureDate) < new Date(form.arrivalDate)) {
+    const planStart = new Date(plan.startDate.slice(0, 10))
+    const planEnd = new Date(plan.endDate.slice(0, 10))
+    const arrival = new Date(form.arrivalDate)
+    const departure = new Date(form.departureDate)
+
+    if (departure < arrival) {
       return 'Datum odlaska ne može biti prije datuma dolaska.'
+    }
+
+    if (arrival < planStart) {
+      return 'Datum dolaska ne može biti prije početka plana putovanja.'
+    }
+
+    if (departure > planEnd) {
+      return 'Datum odlaska ne može biti poslije kraja plana putovanja.'
+    }
+
+    if (hasOverlap()) {
+      return 'Period destinacije se preklapa sa već postojećom destinacijom.'
     }
 
     return ''
@@ -100,6 +129,7 @@ function DestinationsSection({ travelPlanId }) {
     <div className="grid gap-6 lg:grid-cols-[430px_1fr]">
       <DestinationForm
         form={form}
+        plan={plan}
         error={error}
         saving={saving}
         onChange={handleChange}
