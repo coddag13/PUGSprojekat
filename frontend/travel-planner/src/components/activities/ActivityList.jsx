@@ -7,6 +7,7 @@ function ActivityList({
   onRefresh,
   onStatusChange,
   updatingActivityId,
+  allowStatusEdit = true,
 }) {
   const getDestinationName = (destinationId) => {
     if (!destinationId) {
@@ -48,6 +49,7 @@ function ActivityList({
               destinationName={getDestinationName(activity.destinationId)}
               onStatusChange={onStatusChange}
               isUpdating={updatingActivityId === activity.id}
+              allowStatusEdit={allowStatusEdit}
             />
           ))}
         </div>

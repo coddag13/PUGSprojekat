@@ -8,6 +8,7 @@ import PlanTabs from '../components/travel-plan-details/PlanTabs'
 import { getTravelPlanById } from '../services/travelPlanService'
 import ExpensesSection from '../components/expenses/ExpensesSection'
 import ChecklistSection from '../components/checklist/ChecklistSection'
+import SharingSection from '../components/sharing/SharingSection'
 
 function TravelPlanDetailsPage() {
   const { id } = useParams()
@@ -77,11 +78,7 @@ function TravelPlanDetailsPage() {
       case 'checklist':
         return <ChecklistSection travelPlanId={plan.id} />
       case 'sharing':
-        return (
-          <section className="rounded-[2rem] bg-white p-10 text-center text-slate-500 shadow-lg">
-            Sekcija dijeljenja ide sljedeća.
-          </section>
-        )
+        return <SharingSection travelPlanId={plan.id} />
       default:
         return <PlanOverviewSection plan={plan} />
     }

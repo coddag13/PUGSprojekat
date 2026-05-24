@@ -66,7 +66,7 @@ namespace TravelPlanner.WebApi.Controllers
         [HttpGet("access/{token}")]
         public async Task<IActionResult> GetByToken(Guid travelPlanId, string token)
         {
-            var result = await SharingService.ValidateTokenAsync(travelPlanId, token);
+            var result = await SharingService.ValidateTokenForPlanAsync(travelPlanId, token);
             if (!result.Success)
                 return Unauthorized(result.Error);
 

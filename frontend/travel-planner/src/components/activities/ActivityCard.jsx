@@ -14,7 +14,13 @@ const STATUS_CLASSES = {
   3: 'bg-rose-100 text-rose-900 border-rose-200',
 }
 
-function ActivityCard({ activity, destinationName, onStatusChange, isUpdating }) {
+function ActivityCard({
+  activity,
+  destinationName,
+  onStatusChange,
+  isUpdating,
+  allowStatusEdit = true,
+}) {
   const [selectedStatus, setSelectedStatus] = useState(String(activity.status))
   const [isEditingStatus, setIsEditingStatus] = useState(false)
 
@@ -76,7 +82,7 @@ function ActivityCard({ activity, destinationName, onStatusChange, isUpdating })
         </p>
       ) : null}
 
-      {!isEditingStatus ? (
+      {!allowStatusEdit ? null : !isEditingStatus ? (
         <div className="mt-5 flex justify-end">
           <button
             className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"

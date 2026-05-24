@@ -78,16 +78,34 @@ namespace TravelPlanner.SharingService
             return true;
         }
 
-        public async Task<ServiceResponse<ShareTokenData>> ValidateTokenAsync(Guid travelPlanId, string token)
+        public async Task<ServiceResponse<ShareTokenData>> ValidateTokenAsync(string token)
         {
             using var db = CreateDbContext();
+            token = token?.Trim() ?? string.Empty;
+
+            if (string.IsNullOrWhiteSpace(token))
+                return ServiceResponse<ShareTokenData>.Fail("Token is required.");
+
             var shareToken = await db.ShareTokens
-                .FirstOrDefaultAsync(t => t.Token == token && t.TravelPlanId == travelPlanId);
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t => t.Token == token);
 
             if (shareToken is null) return ServiceResponse<ShareTokenData>.Fail("Token not found.");
             if (shareToken.ExpiresAt < DateTime.UtcNow) return ServiceResponse<ShareTokenData>.Fail("Token has expired.");
 
             return ServiceResponse<ShareTokenData>.Ok(MapToData(shareToken));
+        }
+
+        public async Task<ServiceResponse<ShareTokenData>> ValidateTokenForPlanAsync(Guid travelPlanId, string token)
+        {
+            var result = await ValidateTokenAsync(token);
+            if (!result.Success)
+                return result;
+
+            if (result.Data!.TravelPlanId != travelPlanId)
+                return ServiceResponse<ShareTokenData>.Fail("Token does not belong to this travel plan.");
+
+            return result;
         }
 
         private TravelPlannerDbContext CreateDbContext()
