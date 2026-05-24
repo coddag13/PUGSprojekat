@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import DestinationsSection from '../components/destinations/DestinationsSection'
 import PlanDetailsHeader from '../components/travel-plan-details/PlanDetailsHeader'
 import PlanOverviewSection from '../components/travel-plan-details/PlanOverviewSection'
 import { getTravelPlanById } from '../services/travelPlanService'
@@ -63,6 +64,7 @@ function TravelPlanDetailsPage() {
       <div className="mx-auto max-w-7xl space-y-6">
         <PlanDetailsHeader plan={plan} />
         <PlanOverviewSection plan={plan} />
+        <DestinationsSection travelPlanId={plan.id} />
       </div>
     </main>
   )
