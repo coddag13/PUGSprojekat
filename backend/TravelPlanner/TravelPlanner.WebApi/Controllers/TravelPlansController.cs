@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TravelPlanner.Infrastructure.Entities;
-using TravelPlanner.Infrastructure.Persistence;
-using TravelPlanner.WebApi.DTOs.TravelPlans;
-using Microsoft.AspNetCore.Authorization;
-using System.Security.Claims;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.ServiceFabric.Services.Client;
+using Microsoft.ServiceFabric.Services.Remoting.Client;
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using TravelPlanner.Common.Interfaces;
+using TravelPlanner.WebApi.DTOs.TravelPlans;
 
 namespace TravelPlanner.WebApi.Controllers
 {
@@ -14,102 +14,131 @@ namespace TravelPlanner.WebApi.Controllers
     [Route("api/travel-plans")]
     public class TravelPlansController : ControllerBase
     {
-        private readonly TravelPlannerDbContext _context;
-
-        public TravelPlansController(TravelPlannerDbContext context)
-        {
-            _context = context;
-        }
+        private static IPlanService PlanService =>
+            ServiceProxy.Create<IPlanService>(
+                new Uri("fabric:/TravelPlanner/TravelPlanner.PlanService"),
+                new ServicePartitionKey(0));
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<TravelPlanResponseDto>>> GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            var plans = await _context.TravelPlans.ToListAsync();
-            var result = plans.Select(MapToResponse);
-            return Ok(result);
+            var ownerId = GetOwnerId();
+            var plans = await PlanService.GetAllPlansByOwnerAsync(ownerId);
+
+            return Ok(plans.Select(MapToResponse));
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<TravelPlanResponseDto>> GetById(Guid id)
+        public async Task<IActionResult> GetById(Guid id)
         {
-            var plan = await _context.TravelPlans.FindAsync(id);
-            if (plan is null) return NotFound();
+            var ownerId = GetOwnerId();
+            var plan = await PlanService.GetPlanByIdAsync(id);
+
+            if (plan is null)
+                return NotFound();
+
+            if (plan.OwnerId != ownerId)
+                return Forbid();
+
             return Ok(MapToResponse(plan));
         }
 
         [HttpPost]
-        public async Task<ActionResult<TravelPlanResponseDto>> Create(CreateTravelPlanDto dto)
+        public async Task<IActionResult> Create(CreateTravelPlanDto dto)
         {
             if (dto.EndDate < dto.StartDate)
                 return BadRequest("End date cannot be before start date.");
+
             if (dto.PlannedBudget < 0)
                 return BadRequest("Budget cannot be negative.");
 
-            var ownerIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)
-                               ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
-            var ownerId = Guid.Parse(ownerIdClaim!.Value);
+            var ownerId = GetOwnerId();
+            var result = await PlanService.CreatePlanAsync(
+                ownerId,
+                dto.Title,
+                dto.Description,
+                dto.StartDate,
+                dto.EndDate,
+                dto.PlannedBudget,
+                dto.Notes);
 
-            var plan = new TravelPlan
-            {
-                Id = Guid.NewGuid(),
-                Title = dto.Title,
-                Description = dto.Description,
-                StartDate = dto.StartDate,
-                EndDate = dto.EndDate,
-                PlannedBudget = dto.PlannedBudget,
-                Notes = dto.Notes,
-                OwnerId = ownerId
-            };
+            if (!result.Success)
+                return BadRequest(result.Error);
 
-            _context.TravelPlans.Add(plan);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetById), new { id = plan.Id }, MapToResponse(plan));
+            return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, MapToResponse(result.Data));
         }
 
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid id, UpdateTravelPlanDto dto)
         {
-            var plan = await _context.TravelPlans.FindAsync(id);
-            if (plan is null) return NotFound();
-
             if (dto.EndDate < dto.StartDate)
                 return BadRequest("End date cannot be before start date.");
+
             if (dto.PlannedBudget < 0)
                 return BadRequest("Budget cannot be negative.");
 
-            plan.Title = dto.Title;
-            plan.Description = dto.Description;
-            plan.StartDate = dto.StartDate;
-            plan.EndDate = dto.EndDate;
-            plan.PlannedBudget = dto.PlannedBudget;
-            plan.Notes = dto.Notes;
+            var ownerId = GetOwnerId();
+            var existingPlan = await PlanService.GetPlanByIdAsync(id);
 
-            await _context.SaveChangesAsync();
+            if (existingPlan is null)
+                return NotFound();
+
+            if (existingPlan.OwnerId != ownerId)
+                return Forbid();
+
+            var updated = await PlanService.UpdatePlanAsync(
+                id,
+                dto.Title,
+                dto.Description,
+                dto.StartDate,
+                dto.EndDate,
+                dto.PlannedBudget,
+                dto.Notes);
+
+            if (!updated)
+                return NotFound();
+
             return NoContent();
         }
 
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var plan = await _context.TravelPlans.FindAsync(id);
-            if (plan is null) return NotFound();
+            var ownerId = GetOwnerId();
+            var existingPlan = await PlanService.GetPlanByIdAsync(id);
 
-            _context.TravelPlans.Remove(plan);
-            await _context.SaveChangesAsync();
+            if (existingPlan is null)
+                return NotFound();
+
+            if (existingPlan.OwnerId != ownerId)
+                return Forbid();
+
+            var deleted = await PlanService.DeletePlanAsync(id);
+            if (!deleted)
+                return NotFound();
+
             return NoContent();
         }
 
-        private static TravelPlanResponseDto MapToResponse(TravelPlan plan) => new()
+        private static TravelPlanResponseDto MapToResponse(TravelPlanner.Common.Models.TravelPlanData plan)
         {
-            Id = plan.Id,
-            Title = plan.Title,
-            Description = plan.Description,
-            StartDate = plan.StartDate,
-            EndDate = plan.EndDate,
-            PlannedBudget = plan.PlannedBudget,
-            Notes = plan.Notes,
-            OwnerId = plan.OwnerId
-        };
+            return new TravelPlanResponseDto
+            {
+                Id = plan.Id,
+                OwnerId = plan.OwnerId,
+                Title = plan.Title,
+                Description = plan.Description,
+                StartDate = plan.StartDate,
+                EndDate = plan.EndDate,
+                PlannedBudget = plan.PlannedBudget,
+                Notes = plan.Notes
+            };
+        }
+
+        private Guid GetOwnerId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+            return Guid.Parse(claim!.Value);
+        }
     }
 }

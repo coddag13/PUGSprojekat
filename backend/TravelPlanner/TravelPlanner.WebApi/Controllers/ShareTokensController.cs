@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TravelPlanner.Infrastructure.Entities;
-using TravelPlanner.Infrastructure.Persistence;
+using Microsoft.ServiceFabric.Services.Remoting.Client;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using TravelPlanner.Common.Interfaces;
+using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.ShareTokens;
 
 namespace TravelPlanner.WebApi.Controllers
@@ -12,86 +14,92 @@ namespace TravelPlanner.WebApi.Controllers
     [Route("api/travel-plans/{travelPlanId:guid}/share-tokens")]
     public class ShareTokensController : ControllerBase
     {
-        private readonly TravelPlannerDbContext _context;
+        private static ISharingService SharingService =>
+            ServiceProxy.Create<ISharingService>(new Uri("fabric:/TravelPlanner/TravelPlanner.SharingService"));
 
-        public ShareTokensController(TravelPlannerDbContext context)
-        {
-            _context = context;
-        }
+        private static IPlanService PlanService =>
+            ServiceProxy.Create<IPlanService>(new Uri("fabric:/TravelPlanner/TravelPlanner.PlanService"));
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ShareTokenResponseDto>>> GetAll(Guid travelPlanId)
+        public async Task<IActionResult> GetAll(Guid travelPlanId)
         {
-            var planExists = await _context.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return NotFound("Travel plan not found.");
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            var tokens = await _context.ShareTokens
-                .Where(t => t.TravelPlanId == travelPlanId)
-                .ToListAsync();
-
+            var tokens = await SharingService.GetTokensByPlanAsync(travelPlanId);
             return Ok(tokens.Select(MapToResponse));
         }
 
         [HttpPost]
-        public async Task<ActionResult<ShareTokenResponseDto>> Create(Guid travelPlanId, CreateShareTokenDto dto)
+        public async Task<IActionResult> Create(Guid travelPlanId, CreateShareTokenDto dto)
         {
-            var planExists = await _context.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return NotFound("Travel plan not found.");
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (dto.ExpiresAt <= DateTime.UtcNow)
-                return BadRequest("Expiry date must be in the future.");
+            var result = await SharingService.CreateTokenAsync(travelPlanId, dto.AccessType, dto.ExpiresAt);
+            if (!result.Success)
+                return BadRequest(result.Error);
 
-            var shareToken = new ShareToken
-            {
-                Id = Guid.NewGuid(),
-                TravelPlanId = travelPlanId,
-                Token = Guid.NewGuid().ToString("N"),
-                AccessType = dto.AccessType,
-                ExpiresAt = dto.ExpiresAt
-            };
-
-            _context.ShareTokens.Add(shareToken);
-            await _context.SaveChangesAsync();
-
-            return Ok(MapToResponse(shareToken));
+            return Ok(MapToResponse(result.Data!));
         }
 
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid travelPlanId, Guid id)
         {
-            var token = await _context.ShareTokens
-                .FirstOrDefaultAsync(t => t.Id == id && t.TravelPlanId == travelPlanId);
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (token is null) return NotFound();
+            var deleted = await SharingService.DeleteTokenAsync(travelPlanId, id);
+            if (!deleted)
+                return NotFound();
 
-            _context.ShareTokens.Remove(token);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        // Javni endpoint - bez [Authorize], pristup putem tokena
         [AllowAnonymous]
         [HttpGet("access/{token}")]
-        public async Task<ActionResult<ShareTokenResponseDto>> GetByToken(Guid travelPlanId, string token)
+        public async Task<IActionResult> GetByToken(Guid travelPlanId, string token)
         {
-            var shareToken = await _context.ShareTokens
-                .FirstOrDefaultAsync(t => t.Token == token && t.TravelPlanId == travelPlanId);
+            var result = await SharingService.ValidateTokenAsync(travelPlanId, token);
+            if (!result.Success)
+                return Unauthorized(result.Error);
 
-            if (shareToken is null) return NotFound();
-
-            if (shareToken.ExpiresAt < DateTime.UtcNow)
-                return Unauthorized("This share link has expired.");
-
-            return Ok(MapToResponse(shareToken));
+            return Ok(MapToResponse(result.Data!));
         }
 
-        private static ShareTokenResponseDto MapToResponse(ShareToken t) => new()
+        private async Task<IActionResult?> EnsurePlanOwnership(Guid travelPlanId)
         {
-            Id = t.Id,
-            TravelPlanId = t.TravelPlanId,
-            Token = t.Token,
-            AccessType = t.AccessType,
-            ExpiresAt = t.ExpiresAt
-        };
+            var ownerId = GetOwnerId();
+            var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
+
+            if (plan is null)
+                return NotFound("Travel plan not found.");
+
+            if (plan.OwnerId != ownerId)
+                return Forbid();
+
+            return null;
+        }
+
+        private Guid GetOwnerId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+            return Guid.Parse(claim!.Value);
+        }
+
+        private static ShareTokenResponseDto MapToResponse(ShareTokenData token)
+        {
+            return new ShareTokenResponseDto
+            {
+                Id = token.Id,
+                TravelPlanId = token.TravelPlanId,
+                Token = token.Token,
+                AccessType = token.AccessType,
+                ExpiresAt = token.ExpiresAt
+            };
+        }
     }
 }

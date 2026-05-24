@@ -1,12 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.ServiceFabric.Services.Remoting.Client;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using TravelPlanner.Common.Enums;
-using TravelPlanner.Infrastructure.Entities;
-using TravelPlanner.Infrastructure.Persistence;
+using TravelPlanner.Common.Interfaces;
+using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.Auth;
 
 namespace TravelPlanner.WebApi.Controllers
@@ -15,63 +14,44 @@ namespace TravelPlanner.WebApi.Controllers
     [Route("api/auth")]
     public class AuthController : ControllerBase
     {
-        private readonly TravelPlannerDbContext _context;
         private readonly IConfiguration _configuration;
 
-        public AuthController(TravelPlannerDbContext context, IConfiguration configuration)
+        public AuthController(IConfiguration configuration)
         {
-            _context = context;
             _configuration = configuration;
         }
+
+        private static IAuthService AuthService =>
+            ServiceProxy.Create<IAuthService>(new Uri("fabric:/TravelPlanner/TravelPlanner.AuthService"));
 
         [HttpPost("register")]
         public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto dto)
         {
-            var emailExists = await _context.Users.AnyAsync(u => u.Email == dto.Email);
-            if (emailExists)
-                return BadRequest("Email is already in use.");
+            var result = await AuthService.RegisterAsync(dto.FirstName, dto.LastName, dto.Email, dto.Password);
+            if (!result.Success) return BadRequest(result.Error);
 
-            var user = new User
-            {
-                Id = Guid.NewGuid(),
-                FirstName = dto.FirstName,
-                LastName = dto.LastName,
-                Email = dto.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-                Role = UserRole.User
-            };
-
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            return Ok(new AuthResponseDto
-            {
-                Token = GenerateToken(user),
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Role = user.Role.ToString()
-            });
+            return Ok(BuildAuthResponse(result.Data!));
         }
 
         [HttpPost("login")]
         public async Task<ActionResult<AuthResponseDto>> Login(LoginDto dto)
         {
-            var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
-            if (user is null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
-                return Unauthorized("Invalid email or password.");
+            var result = await AuthService.LoginAsync(dto.Email, dto.Password);
+            if (!result.Success) return Unauthorized(result.Error);
 
-            return Ok(new AuthResponseDto
-            {
-                Token = GenerateToken(user),
-                Email = user.Email,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Role = user.Role.ToString()
-            });
+            return Ok(BuildAuthResponse(result.Data!));
         }
 
-        private string GenerateToken(User user)
+        private AuthResponseDto BuildAuthResponse(UserData user) => new()
+        {
+            Token = GenerateToken(user),
+            Email = user.Email,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            Role = user.Role
+        };
+
+        private string GenerateToken(UserData user)
         {
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -80,7 +60,7 @@ namespace TravelPlanner.WebApi.Controllers
             {
                 new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
                 new Claim(JwtRegisteredClaimNames.Email, user.Email),
-                new Claim(ClaimTypes.Role, user.Role.ToString()),
+                new Claim(ClaimTypes.Role, user.Role),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 

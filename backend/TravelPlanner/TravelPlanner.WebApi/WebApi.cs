@@ -1,12 +1,10 @@
-using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.ServiceFabric.Services.Communication.AspNetCore;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
 using System.Fabric;
-using TravelPlanner.Infrastructure.Persistence;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 namespace TravelPlanner.WebApi
@@ -30,12 +28,19 @@ namespace TravelPlanner.WebApi
                         var builder = WebApplication.CreateBuilder();
 
                         builder.Services.AddSingleton<StatelessServiceContext>(serviceContext);
-                        builder.Services.AddDbContext<TravelPlannerDbContext>(options =>
-                            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-                        var jwtKey = builder.Configuration["Jwt:Key"]!;
-                        var jwtIssuer = builder.Configuration["Jwt:Issuer"]!;
-                        var jwtAudience = builder.Configuration["Jwt:Audience"]!;
+                        var jwtKey = builder.Configuration["Jwt:Key"]
+                            ?? throw new InvalidOperationException("Jwt:Key is not configured.");
+                        var jwtIssuer = builder.Configuration["Jwt:Issuer"]
+                            ?? throw new InvalidOperationException("Jwt:Issuer is not configured.");
+                        var jwtAudience = builder.Configuration["Jwt:Audience"]
+                            ?? throw new InvalidOperationException("Jwt:Audience is not configured.");
+
+                        builder.WebHost
+                            .UseKestrel()
+                            .UseContentRoot(Directory.GetCurrentDirectory())
+                            .UseServiceFabricIntegration(listener, ServiceFabricIntegrationOptions.None)
+                            .UseUrls(url);
 
                         builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
                             .AddJwtBearer(options =>
@@ -52,12 +57,7 @@ namespace TravelPlanner.WebApi
                                 };
                             });
 
-                        builder.WebHost
-                            .UseKestrel()
-                            .UseContentRoot(Directory.GetCurrentDirectory())
-                            .UseServiceFabricIntegration(listener, ServiceFabricIntegrationOptions.None)
-                            .UseUrls(url);
-
+                        builder.Services.AddAuthorization();
                         builder.Services.AddControllers();
                         builder.Services.AddEndpointsApiExplorer();
                         builder.Services.AddSwaggerGen();

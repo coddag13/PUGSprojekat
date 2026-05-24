@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TravelPlanner.Infrastructure.Entities;
-using TravelPlanner.Infrastructure.Persistence;
+using Microsoft.ServiceFabric.Services.Client;
+using Microsoft.ServiceFabric.Services.Remoting.Client;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using TravelPlanner.Common.Interfaces;
+using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.Activities;
 
 namespace TravelPlanner.WebApi.Controllers
@@ -12,128 +15,140 @@ namespace TravelPlanner.WebApi.Controllers
     [Route("api/travel-plans/{travelPlanId:guid}/activities")]
     public class ActivitiesController : ControllerBase
     {
-        private readonly TravelPlannerDbContext _context;
-
-        public ActivitiesController(TravelPlannerDbContext context)
-        {
-            _context = context;
-        }
+        private static IPlanService PlanService =>
+            ServiceProxy.Create<IPlanService>(
+                new Uri("fabric:/TravelPlanner/TravelPlanner.PlanService"),
+                new ServicePartitionKey(0));
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ActivityResponseDto>>> GetAll(Guid travelPlanId)
+        public async Task<IActionResult> GetAll(Guid travelPlanId)
         {
-            var planExists = await _context.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return NotFound("Travel plan not found.");
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            var activities = await _context.PlanActivities
-                .Where(a => a.TravelPlanId == travelPlanId)
-                .ToListAsync();
-
-            return Ok(activities.Select(MapToResponse));
+            var items = await PlanService.GetActivitiesAsync(travelPlanId);
+            return Ok(items.Select(MapToResponse));
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ActivityResponseDto>> GetById(Guid travelPlanId, Guid id)
+        public async Task<IActionResult> GetById(Guid travelPlanId, Guid id)
         {
-            var activity = await _context.PlanActivities
-                .FirstOrDefaultAsync(a => a.Id == id && a.TravelPlanId == travelPlanId);
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (activity is null) return NotFound();
+            var activity = await PlanService.GetActivityByIdAsync(travelPlanId, id);
+            if (activity is null)
+                return NotFound();
+
             return Ok(MapToResponse(activity));
         }
 
         [HttpPost]
-        public async Task<ActionResult<ActivityResponseDto>> Create(Guid travelPlanId, CreateActivityDto dto)
+        public async Task<IActionResult> Create(Guid travelPlanId, CreateActivityDto dto)
         {
-            var planExists = await _context.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return NotFound("Travel plan not found.");
-
             if (dto.EstimatedCost < 0)
                 return BadRequest("Estimated cost cannot be negative.");
 
-            if (dto.DestinationId.HasValue)
-            {
-                var destExists = await _context.Destinations
-                    .AnyAsync(d => d.Id == dto.DestinationId.Value && d.TravelPlanId == travelPlanId);
-                if (!destExists) return BadRequest("Destination not found in this travel plan.");
-            }
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            var activity = new PlanActivity
-            {
-                Id = Guid.NewGuid(),
-                TravelPlanId = travelPlanId,
-                DestinationId = dto.DestinationId,
-                Name = dto.Name,
-                Date = dto.Date,
-                Time = dto.Time,
-                Location = dto.Location,
-                Description = dto.Description,
-                EstimatedCost = dto.EstimatedCost,
-                Status = dto.Status
-            };
+            var result = await PlanService.CreateActivityAsync(
+                travelPlanId,
+                dto.DestinationId,
+                dto.Name,
+                dto.Date,
+                dto.Time,
+                dto.Location,
+                dto.Description,
+                dto.EstimatedCost,
+                dto.Status);
 
-            _context.PlanActivities.Add(activity);
-            await _context.SaveChangesAsync();
+            if (!result.Success)
+                return BadRequest(result.Error);
 
-            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = activity.Id }, MapToResponse(activity));
+            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = result.Data!.Id }, MapToResponse(result.Data));
         }
 
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid travelPlanId, Guid id, UpdateActivityDto dto)
         {
-            var activity = await _context.PlanActivities
-                .FirstOrDefaultAsync(a => a.Id == id && a.TravelPlanId == travelPlanId);
-
-            if (activity is null) return NotFound();
-
             if (dto.EstimatedCost < 0)
                 return BadRequest("Estimated cost cannot be negative.");
 
-            if (dto.DestinationId.HasValue)
-            {
-                var destExists = await _context.Destinations
-                    .AnyAsync(d => d.Id == dto.DestinationId.Value && d.TravelPlanId == travelPlanId);
-                if (!destExists) return BadRequest("Destination not found in this travel plan.");
-            }
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            activity.DestinationId = dto.DestinationId;
-            activity.Name = dto.Name;
-            activity.Date = dto.Date;
-            activity.Time = dto.Time;
-            activity.Location = dto.Location;
-            activity.Description = dto.Description;
-            activity.EstimatedCost = dto.EstimatedCost;
-            activity.Status = dto.Status;
+            var updated = await PlanService.UpdateActivityAsync(
+                travelPlanId,
+                id,
+                dto.DestinationId,
+                dto.Name,
+                dto.Date,
+                dto.Time,
+                dto.Location,
+                dto.Description,
+                dto.EstimatedCost,
+                dto.Status);
 
-            await _context.SaveChangesAsync();
+            if (!updated)
+                return NotFound();
+
             return NoContent();
         }
 
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid travelPlanId, Guid id)
         {
-            var activity = await _context.PlanActivities
-                .FirstOrDefaultAsync(a => a.Id == id && a.TravelPlanId == travelPlanId);
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (activity is null) return NotFound();
+            var deleted = await PlanService.DeleteActivityAsync(travelPlanId, id);
+            if (!deleted)
+                return NotFound();
 
-            _context.PlanActivities.Remove(activity);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        private static ActivityResponseDto MapToResponse(PlanActivity a) => new()
+        private async Task<IActionResult?> EnsurePlanOwnership(Guid travelPlanId)
         {
-            Id = a.Id,
-            TravelPlanId = a.TravelPlanId,
-            DestinationId = a.DestinationId,
-            Name = a.Name,
-            Date = a.Date,
-            Time = a.Time,
-            Location = a.Location,
-            Description = a.Description,
-            EstimatedCost = a.EstimatedCost,
-            Status = a.Status
-        };
+            var ownerId = GetOwnerId();
+            var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
+
+            if (plan is null)
+                return NotFound("Travel plan not found.");
+
+            if (plan.OwnerId != ownerId)
+                return Forbid();
+
+            return null;
+        }
+
+        private Guid GetOwnerId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+            return Guid.Parse(claim!.Value);
+        }
+
+        private static ActivityResponseDto MapToResponse(ActivityData activity)
+        {
+            return new ActivityResponseDto
+            {
+                Id = activity.Id,
+                TravelPlanId = activity.TravelPlanId,
+                DestinationId = activity.DestinationId,
+                Name = activity.Name,
+                Date = activity.Date,
+                Time = activity.Time,
+                Location = activity.Location,
+                Description = activity.Description,
+                EstimatedCost = activity.EstimatedCost,
+                Status = activity.Status
+            };
+        }
     }
 }

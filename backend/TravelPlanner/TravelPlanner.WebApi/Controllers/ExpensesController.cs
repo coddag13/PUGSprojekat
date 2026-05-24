@@ -1,9 +1,12 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TravelPlanner.Infrastructure.Entities;
-using TravelPlanner.Infrastructure.Persistence;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.ServiceFabric.Services.Client;
+using Microsoft.ServiceFabric.Services.Remoting.Client;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using TravelPlanner.Common.Interfaces;
+using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.Expenses;
-using Microsoft.AspNetCore.Authorization;
 
 namespace TravelPlanner.WebApi.Controllers
 {
@@ -12,105 +15,131 @@ namespace TravelPlanner.WebApi.Controllers
     [Route("api/travel-plans/{travelPlanId:guid}/expenses")]
     public class ExpensesController : ControllerBase
     {
-        private readonly TravelPlannerDbContext _context;
-
-        public ExpensesController(TravelPlannerDbContext context)
-        {
-            _context = context;
-        }
+        private static IPlanService PlanService =>
+            ServiceProxy.Create<IPlanService>(
+                new Uri("fabric:/TravelPlanner/TravelPlanner.PlanService"),
+                new ServicePartitionKey(0));
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ExpenseResponseDto>>> GetAll(Guid travelPlanId)
+        public async Task<IActionResult> GetAll(Guid travelPlanId)
         {
-            var planExists = await _context.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return NotFound("Travel plan not found.");
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            var expenses = await _context.Expenses
-                .Where(e => e.TravelPlanId == travelPlanId)
-                .ToListAsync();
-
-            return Ok(expenses.Select(MapToResponse));
+            var items = await PlanService.GetExpensesAsync(travelPlanId);
+            return Ok(items.Select(MapToResponse));
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ExpenseResponseDto>> GetById(Guid travelPlanId, Guid id)
+        public async Task<IActionResult> GetById(Guid travelPlanId, Guid id)
         {
-            var expense = await _context.Expenses
-                .FirstOrDefaultAsync(e => e.Id == id && e.TravelPlanId == travelPlanId);
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (expense is null) return NotFound();
+            var expense = await PlanService.GetExpenseByIdAsync(travelPlanId, id);
+            if (expense is null)
+                return NotFound();
+
             return Ok(MapToResponse(expense));
         }
 
         [HttpPost]
-        public async Task<ActionResult<ExpenseResponseDto>> Create(Guid travelPlanId, CreateExpenseDto dto)
+        public async Task<IActionResult> Create(Guid travelPlanId, CreateExpenseDto dto)
         {
-            var planExists = await _context.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return NotFound("Travel plan not found.");
-
             if (dto.Amount < 0)
                 return BadRequest("Amount cannot be negative.");
 
-            var expense = new Expense
-            {
-                Id = Guid.NewGuid(),
-                TravelPlanId = travelPlanId,
-                Name = dto.Name,
-                Category = dto.Category,
-                Amount = dto.Amount,
-                Date = dto.Date,
-                Description = dto.Description
-            };
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            _context.Expenses.Add(expense);
-            await _context.SaveChangesAsync();
+            var result = await PlanService.CreateExpenseAsync(
+                travelPlanId,
+                dto.Name,
+                dto.Category,
+                dto.Amount,
+                dto.Date,
+                dto.Description);
 
-            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = expense.Id }, MapToResponse(expense));
+            if (!result.Success)
+                return BadRequest(result.Error);
+
+            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = result.Data!.Id }, MapToResponse(result.Data));
         }
 
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid travelPlanId, Guid id, UpdateExpenseDto dto)
         {
-            var expense = await _context.Expenses
-                .FirstOrDefaultAsync(e => e.Id == id && e.TravelPlanId == travelPlanId);
-
-            if (expense is null) return NotFound();
-
             if (dto.Amount < 0)
                 return BadRequest("Amount cannot be negative.");
 
-            expense.Name = dto.Name;
-            expense.Category = dto.Category;
-            expense.Amount = dto.Amount;
-            expense.Date = dto.Date;
-            expense.Description = dto.Description;
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            await _context.SaveChangesAsync();
+            var updated = await PlanService.UpdateExpenseAsync(
+                travelPlanId,
+                id,
+                dto.Name,
+                dto.Category,
+                dto.Amount,
+                dto.Date,
+                dto.Description);
+
+            if (!updated)
+                return NotFound();
+
             return NoContent();
         }
 
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid travelPlanId, Guid id)
         {
-            var expense = await _context.Expenses
-                .FirstOrDefaultAsync(e => e.Id == id && e.TravelPlanId == travelPlanId);
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (expense is null) return NotFound();
+            var deleted = await PlanService.DeleteExpenseAsync(travelPlanId, id);
+            if (!deleted)
+                return NotFound();
 
-            _context.Expenses.Remove(expense);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        private static ExpenseResponseDto MapToResponse(Expense e) => new()
+        private async Task<IActionResult?> EnsurePlanOwnership(Guid travelPlanId)
         {
-            Id = e.Id,
-            TravelPlanId = e.TravelPlanId,
-            Name = e.Name,
-            Category = e.Category,
-            Amount = e.Amount,
-            Date = e.Date,
-            Description = e.Description
-        };
+            var ownerId = GetOwnerId();
+            var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
+
+            if (plan is null)
+                return NotFound("Travel plan not found.");
+
+            if (plan.OwnerId != ownerId)
+                return Forbid();
+
+            return null;
+        }
+
+        private Guid GetOwnerId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+            return Guid.Parse(claim!.Value);
+        }
+
+        private static ExpenseResponseDto MapToResponse(ExpenseData expense)
+        {
+            return new ExpenseResponseDto
+            {
+                Id = expense.Id,
+                TravelPlanId = expense.TravelPlanId,
+                Name = expense.Name,
+                Category = expense.Category,
+                Amount = expense.Amount,
+                Date = expense.Date,
+                Description = expense.Description
+            };
+        }
     }
 }

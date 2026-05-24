@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TravelPlanner.Infrastructure.Entities;
-using TravelPlanner.Infrastructure.Persistence;
+using Microsoft.ServiceFabric.Services.Client;
+using Microsoft.ServiceFabric.Services.Remoting.Client;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using TravelPlanner.Common.Interfaces;
+using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.Destinations;
 
 namespace TravelPlanner.WebApi.Controllers
@@ -12,105 +15,131 @@ namespace TravelPlanner.WebApi.Controllers
     [Route("api/travel-plans/{travelPlanId:guid}/destinations")]
     public class DestinationsController : ControllerBase
     {
-        private readonly TravelPlannerDbContext _context;
-
-        public DestinationsController(TravelPlannerDbContext context)
-        {
-            _context = context;
-        }
+        private static IPlanService PlanService =>
+            ServiceProxy.Create<IPlanService>(
+                new Uri("fabric:/TravelPlanner/TravelPlanner.PlanService"),
+                new ServicePartitionKey(0));
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<DestinationResponseDto>>> GetAll(Guid travelPlanId)
+        public async Task<IActionResult> GetAll(Guid travelPlanId)
         {
-            var planExists = await _context.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return NotFound("Travel plan not found.");
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            var destinations = await _context.Destinations
-                .Where(d => d.TravelPlanId == travelPlanId)
-                .ToListAsync();
-
-            return Ok(destinations.Select(MapToResponse));
+            var items = await PlanService.GetDestinationsAsync(travelPlanId);
+            return Ok(items.Select(MapToResponse));
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<DestinationResponseDto>> GetById(Guid travelPlanId, Guid id)
+        public async Task<IActionResult> GetById(Guid travelPlanId, Guid id)
         {
-            var destination = await _context.Destinations
-                .FirstOrDefaultAsync(d => d.Id == id && d.TravelPlanId == travelPlanId);
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (destination is null) return NotFound();
+            var destination = await PlanService.GetDestinationByIdAsync(travelPlanId, id);
+            if (destination is null)
+                return NotFound();
+
             return Ok(MapToResponse(destination));
         }
 
         [HttpPost]
-        public async Task<ActionResult<DestinationResponseDto>> Create(Guid travelPlanId, CreateDestinationDto dto)
+        public async Task<IActionResult> Create(Guid travelPlanId, CreateDestinationDto dto)
         {
-            var planExists = await _context.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return NotFound("Travel plan not found.");
-
             if (dto.DepartureDate < dto.ArrivalDate)
                 return BadRequest("Departure date cannot be before arrival date.");
 
-            var destination = new Destination
-            {
-                Id = Guid.NewGuid(),
-                TravelPlanId = travelPlanId,
-                Name = dto.Name,
-                Location = dto.Location,
-                ArrivalDate = dto.ArrivalDate,
-                DepartureDate = dto.DepartureDate,
-                Description = dto.Description
-            };
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            _context.Destinations.Add(destination);
-            await _context.SaveChangesAsync();
+            var result = await PlanService.CreateDestinationAsync(
+                travelPlanId,
+                dto.Name,
+                dto.Location,
+                dto.ArrivalDate,
+                dto.DepartureDate,
+                dto.Description);
 
-            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = destination.Id }, MapToResponse(destination));
+            if (!result.Success)
+                return BadRequest(result.Error);
+
+            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = result.Data!.Id }, MapToResponse(result.Data));
         }
 
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid travelPlanId, Guid id, UpdateDestinationDto dto)
         {
-            var destination = await _context.Destinations
-                .FirstOrDefaultAsync(d => d.Id == id && d.TravelPlanId == travelPlanId);
-
-            if (destination is null) return NotFound();
-
             if (dto.DepartureDate < dto.ArrivalDate)
                 return BadRequest("Departure date cannot be before arrival date.");
 
-            destination.Name = dto.Name;
-            destination.Location = dto.Location;
-            destination.ArrivalDate = dto.ArrivalDate;
-            destination.DepartureDate = dto.DepartureDate;
-            destination.Description = dto.Description;
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            await _context.SaveChangesAsync();
+            var updated = await PlanService.UpdateDestinationAsync(
+                travelPlanId,
+                id,
+                dto.Name,
+                dto.Location,
+                dto.ArrivalDate,
+                dto.DepartureDate,
+                dto.Description);
+
+            if (!updated)
+                return NotFound();
+
             return NoContent();
         }
 
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid travelPlanId, Guid id)
         {
-            var destination = await _context.Destinations
-                .FirstOrDefaultAsync(d => d.Id == id && d.TravelPlanId == travelPlanId);
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (destination is null) return NotFound();
+            var deleted = await PlanService.DeleteDestinationAsync(travelPlanId, id);
+            if (!deleted)
+                return NotFound();
 
-            _context.Destinations.Remove(destination);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        private static DestinationResponseDto MapToResponse(Destination d) => new()
+        private async Task<IActionResult?> EnsurePlanOwnership(Guid travelPlanId)
         {
-            Id = d.Id,
-            TravelPlanId = d.TravelPlanId,
-            Name = d.Name,
-            Location = d.Location,
-            ArrivalDate = d.ArrivalDate,
-            DepartureDate = d.DepartureDate,
-            Description = d.Description
-        };
+            var ownerId = GetOwnerId();
+            var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
+
+            if (plan is null)
+                return NotFound("Travel plan not found.");
+
+            if (plan.OwnerId != ownerId)
+                return Forbid();
+
+            return null;
+        }
+
+        private Guid GetOwnerId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+            return Guid.Parse(claim!.Value);
+        }
+
+        private static DestinationResponseDto MapToResponse(DestinationData destination)
+        {
+            return new DestinationResponseDto
+            {
+                Id = destination.Id,
+                TravelPlanId = destination.TravelPlanId,
+                Name = destination.Name,
+                Location = destination.Location,
+                ArrivalDate = destination.ArrivalDate,
+                DepartureDate = destination.DepartureDate,
+                Description = destination.Description
+            };
+        }
     }
 }

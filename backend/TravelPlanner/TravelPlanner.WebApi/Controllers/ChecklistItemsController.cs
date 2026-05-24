@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using TravelPlanner.Infrastructure.Entities;
-using TravelPlanner.Infrastructure.Persistence;
+using Microsoft.ServiceFabric.Services.Client;
+using Microsoft.ServiceFabric.Services.Remoting.Client;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using TravelPlanner.Common.Interfaces;
+using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.ChecklistItems;
 
 namespace TravelPlanner.WebApi.Controllers
@@ -12,90 +15,107 @@ namespace TravelPlanner.WebApi.Controllers
     [Route("api/travel-plans/{travelPlanId:guid}/checklist-items")]
     public class ChecklistItemsController : ControllerBase
     {
-        private readonly TravelPlannerDbContext _context;
-
-        public ChecklistItemsController(TravelPlannerDbContext context)
-        {
-            _context = context;
-        }
+        private static IPlanService PlanService =>
+            ServiceProxy.Create<IPlanService>(
+                new Uri("fabric:/TravelPlanner/TravelPlanner.PlanService"),
+                new ServicePartitionKey(0));
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<ChecklistItemResponseDto>>> GetAll(Guid travelPlanId)
+        public async Task<IActionResult> GetAll(Guid travelPlanId)
         {
-            var planExists = await _context.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return NotFound("Travel plan not found.");
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            var items = await _context.ChecklistItems
-                .Where(c => c.TravelPlanId == travelPlanId)
-                .ToListAsync();
-
+            var items = await PlanService.GetChecklistItemsAsync(travelPlanId);
             return Ok(items.Select(MapToResponse));
         }
 
         [HttpGet("{id:guid}")]
-        public async Task<ActionResult<ChecklistItemResponseDto>> GetById(Guid travelPlanId, Guid id)
+        public async Task<IActionResult> GetById(Guid travelPlanId, Guid id)
         {
-            var item = await _context.ChecklistItems
-                .FirstOrDefaultAsync(c => c.Id == id && c.TravelPlanId == travelPlanId);
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (item is null) return NotFound();
+            var item = await PlanService.GetChecklistItemByIdAsync(travelPlanId, id);
+            if (item is null)
+                return NotFound();
+
             return Ok(MapToResponse(item));
         }
 
         [HttpPost]
-        public async Task<ActionResult<ChecklistItemResponseDto>> Create(Guid travelPlanId, CreateChecklistItemDto dto)
+        public async Task<IActionResult> Create(Guid travelPlanId, CreateChecklistItemDto dto)
         {
-            var planExists = await _context.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return NotFound("Travel plan not found.");
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            var item = new ChecklistItem
-            {
-                Id = Guid.NewGuid(),
-                TravelPlanId = travelPlanId,
-                Text = dto.Text,
-                IsCompleted = false
-            };
+            var result = await PlanService.CreateChecklistItemAsync(travelPlanId, dto.Text);
+            if (!result.Success)
+                return BadRequest(result.Error);
 
-            _context.ChecklistItems.Add(item);
-            await _context.SaveChangesAsync();
-
-            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = item.Id }, MapToResponse(item));
+            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = result.Data!.Id }, MapToResponse(result.Data));
         }
 
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid travelPlanId, Guid id, UpdateChecklistItemDto dto)
         {
-            var item = await _context.ChecklistItems
-                .FirstOrDefaultAsync(c => c.Id == id && c.TravelPlanId == travelPlanId);
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (item is null) return NotFound();
+            var updated = await PlanService.UpdateChecklistItemAsync(travelPlanId, id, dto.Text, dto.IsCompleted);
+            if (!updated)
+                return NotFound();
 
-            item.Text = dto.Text;
-            item.IsCompleted = dto.IsCompleted;
-
-            await _context.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid travelPlanId, Guid id)
         {
-            var item = await _context.ChecklistItems
-                .FirstOrDefaultAsync(c => c.Id == id && c.TravelPlanId == travelPlanId);
+            var ownershipResult = await EnsurePlanOwnership(travelPlanId);
+            if (ownershipResult is not null)
+                return ownershipResult;
 
-            if (item is null) return NotFound();
+            var deleted = await PlanService.DeleteChecklistItemAsync(travelPlanId, id);
+            if (!deleted)
+                return NotFound();
 
-            _context.ChecklistItems.Remove(item);
-            await _context.SaveChangesAsync();
             return NoContent();
         }
 
-        private static ChecklistItemResponseDto MapToResponse(ChecklistItem c) => new()
+        private async Task<IActionResult?> EnsurePlanOwnership(Guid travelPlanId)
         {
-            Id = c.Id,
-            TravelPlanId = c.TravelPlanId,
-            Text = c.Text,
-            IsCompleted = c.IsCompleted
-        };
+            var ownerId = GetOwnerId();
+            var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
+
+            if (plan is null)
+                return NotFound("Travel plan not found.");
+
+            if (plan.OwnerId != ownerId)
+                return Forbid();
+
+            return null;
+        }
+
+        private Guid GetOwnerId()
+        {
+            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
+            return Guid.Parse(claim!.Value);
+        }
+
+        private static ChecklistItemResponseDto MapToResponse(ChecklistItemData item)
+        {
+            return new ChecklistItemResponseDto
+            {
+                Id = item.Id,
+                TravelPlanId = item.TravelPlanId,
+                Text = item.Text,
+                IsCompleted = item.IsCompleted
+            };
+        }
     }
 }
