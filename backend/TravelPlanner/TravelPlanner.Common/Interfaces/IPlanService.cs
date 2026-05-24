@@ -9,7 +9,7 @@ namespace TravelPlanner.Common.Interfaces
         // Travel Plans
         Task<List<TravelPlanData>> GetAllPlansByOwnerAsync(Guid ownerId);
         Task<TravelPlanData?> GetPlanByIdAsync(Guid id);
-        Task<TravelPlanData> CreatePlanAsync(Guid ownerId, string title, string description, DateTime startDate, DateTime endDate, decimal plannedBudget, string notes);
+        Task<ServiceResponse<TravelPlanData>> CreatePlanAsync(Guid ownerId, string title, string description, DateTime startDate, DateTime endDate, decimal plannedBudget, string notes);
         Task<bool> UpdatePlanAsync(Guid id, string title, string description, DateTime startDate, DateTime endDate, decimal plannedBudget, string notes);
         Task<bool> DeletePlanAsync(Guid id);
 
@@ -37,7 +37,7 @@ namespace TravelPlanner.Common.Interfaces
         // Checklist Items
         Task<List<ChecklistItemData>> GetChecklistItemsAsync(Guid travelPlanId);
         Task<ChecklistItemData?> GetChecklistItemByIdAsync(Guid travelPlanId, Guid id);
-        Task<ChecklistItemData> CreateChecklistItemAsync(Guid travelPlanId, string text);
+        Task<ServiceResponse<ChecklistItemData>> CreateChecklistItemAsync(Guid travelPlanId, string text);
         Task<bool> UpdateChecklistItemAsync(Guid travelPlanId, Guid id, string text, bool isCompleted);
         Task<bool> DeleteChecklistItemAsync(Guid travelPlanId, Guid id);
     }
