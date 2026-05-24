@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.ServiceFabric.Services.Client;
 using Microsoft.ServiceFabric.Services.Remoting.Client;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -18,7 +19,9 @@ namespace TravelPlanner.WebApi.Controllers
             ServiceProxy.Create<ISharingService>(new Uri("fabric:/TravelPlanner/TravelPlanner.SharingService"));
 
         private static IPlanService PlanService =>
-            ServiceProxy.Create<IPlanService>(new Uri("fabric:/TravelPlanner/TravelPlanner.PlanService"));
+            ServiceProxy.Create<IPlanService>(
+                new Uri("fabric:/TravelPlanner/TravelPlanner.PlanService"),
+                new ServicePartitionKey(0));
 
         [HttpGet]
         public async Task<IActionResult> GetAll(Guid travelPlanId)

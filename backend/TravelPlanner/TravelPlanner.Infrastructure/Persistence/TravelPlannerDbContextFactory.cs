@@ -10,7 +10,7 @@ namespace TravelPlanner.Infrastructure.Persistence
             var optionsBuilder = new DbContextOptionsBuilder<TravelPlannerDbContext>();
 
             optionsBuilder.UseSqlServer(
-    "Server=(localdb)\\MSSQLLocalDB;Database=TravelPlannerDb;Trusted_Connection=True;TrustServerCertificate=True;");
+    "Server=DESKTOP-FEM7DBU\\SQLEXPRESS;Database=TravelPlannerDb;Trusted_Connection=True;TrustServerCertificate=True;");
 
             return new TravelPlannerDbContext(optionsBuilder.Options);
         }
