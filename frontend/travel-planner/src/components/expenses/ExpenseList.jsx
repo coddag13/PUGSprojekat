@@ -1,6 +1,13 @@
 import ExpenseCard from './ExpenseCard'
 
-function ExpenseList({ expenses, loading, onRefresh }) {
+function ExpenseList({
+  expenses,
+  loading,
+  onRefresh,
+  onEdit,
+  onDelete,
+  deletingExpenseId,
+}) {
   return (
     <section className="rounded-[2rem] bg-white p-6 shadow-lg">
       <div className="mb-5 flex items-center justify-between">
@@ -26,7 +33,13 @@ function ExpenseList({ expenses, loading, onRefresh }) {
       ) : (
         <div className="grid gap-4">
           {expenses.map((expense) => (
-            <ExpenseCard key={expense.id} expense={expense} />
+            <ExpenseCard
+              key={expense.id}
+              expense={expense}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              isDeleting={deletingExpenseId === expense.id}
+            />
           ))}
         </div>
       )}

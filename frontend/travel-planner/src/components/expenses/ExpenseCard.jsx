@@ -16,7 +16,7 @@ const CATEGORY_CLASSES = {
   5: 'bg-slate-100 text-slate-900',
 }
 
-function ExpenseCard({ expense }) {
+function ExpenseCard({ expense, onEdit, onDelete, isDeleting }) {
   const categoryClass = CATEGORY_CLASSES[expense.category] ?? 'bg-slate-100 text-slate-900'
 
   return (
@@ -34,8 +34,27 @@ function ExpenseCard({ expense }) {
           </div>
         </div>
 
-        <div className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-          {expense.amount} EUR
+        <div className="flex gap-3">
+          <div className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            {expense.amount} EUR
+          </div>
+
+          <button
+            className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            type="button"
+            onClick={() => onEdit(expense)}
+          >
+            Izmijeni
+          </button>
+
+          <button
+            className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+            type="button"
+            onClick={() => onDelete(expense)}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Briše se...' : 'Obriši'}
+          </button>
         </div>
       </div>
 
