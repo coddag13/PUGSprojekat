@@ -1,20 +1,29 @@
 import { useEffect, useState } from 'react'
-import { createDestination, getDestinations } from '../../services/destinationService'
+import {
+  createDestination,
+  deleteDestination,
+  getDestinations,
+  updateDestination,
+} from '../../services/destinationService'
 import DestinationForm from './DestinationForm'
 import DestinationList from './DestinationList'
 
 function DestinationsSection({ travelPlanId, plan }) {
-  const [destinations, setDestinations] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [form, setForm] = useState({
+  const emptyForm = {
     name: '',
     location: '',
     arrivalDate: '',
     departureDate: '',
     description: '',
-  })
+  }
+
+  const [destinations, setDestinations] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [deletingDestinationId, setDeletingDestinationId] = useState(null)
+  const [editingDestinationId, setEditingDestinationId] = useState(null)
+  const [error, setError] = useState('')
+  const [form, setForm] = useState(emptyForm)
 
   const loadDestinations = async () => {
     setLoading(true)
@@ -39,11 +48,20 @@ function DestinationsSection({ travelPlanId, plan }) {
     setForm((current) => ({ ...current, [name]: value }))
   }
 
+  const resetForm = () => {
+    setForm(emptyForm)
+    setEditingDestinationId(null)
+  }
+
   const hasOverlap = () => {
     const newArrival = new Date(form.arrivalDate)
     const newDeparture = new Date(form.departureDate)
 
     return destinations.some((destination) => {
+      if (destination.id === editingDestinationId) {
+        return false
+      }
+
       const existingArrival = new Date(destination.arrivalDate.slice(0, 10))
       const existingDeparture = new Date(destination.departureDate.slice(0, 10))
 
@@ -101,27 +119,63 @@ function DestinationsSection({ travelPlanId, plan }) {
     setSaving(true)
 
     try {
-      await createDestination(travelPlanId, {
+      const payload = {
         name: form.name.trim(),
         location: form.location.trim(),
         arrivalDate: `${form.arrivalDate}T00:00:00`,
         departureDate: `${form.departureDate}T00:00:00`,
         description: form.description.trim(),
-      })
+      }
 
-      setForm({
-        name: '',
-        location: '',
-        arrivalDate: '',
-        departureDate: '',
-        description: '',
-      })
+      if (editingDestinationId) {
+        await updateDestination(travelPlanId, editingDestinationId, payload)
+      } else {
+        await createDestination(travelPlanId, payload)
+      }
 
+      resetForm()
       await loadDestinations()
     } catch (err) {
       setError(err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleEdit = (destination) => {
+    setError('')
+    setEditingDestinationId(destination.id)
+    setForm({
+      name: destination.name,
+      location: destination.location,
+      arrivalDate: destination.arrivalDate.slice(0, 10),
+      departureDate: destination.departureDate.slice(0, 10),
+      description: destination.description ?? '',
+    })
+  }
+
+  const handleDelete = async (destination) => {
+    const confirmed = window.confirm(`Da li sigurno želiš obrisati destinaciju "${destination.name}"?`)
+
+    if (!confirmed) {
+      return
+    }
+
+    setError('')
+    setDeletingDestinationId(destination.id)
+
+    try {
+      await deleteDestination(travelPlanId, destination.id)
+
+      if (editingDestinationId === destination.id) {
+        resetForm()
+      }
+
+      await loadDestinations()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setDeletingDestinationId(null)
     }
   }
 
@@ -132,14 +186,21 @@ function DestinationsSection({ travelPlanId, plan }) {
         plan={plan}
         error={error}
         saving={saving}
+        submitLabel={editingDestinationId ? 'Sačuvaj izmjene' : 'Dodaj destinaciju'}
+        title={editingDestinationId ? 'Izmjena destinacije' : 'Nova destinacija'}
         onChange={handleChange}
         onSubmit={handleSubmit}
+        onCancel={resetForm}
+        showCancel={Boolean(editingDestinationId)}
       />
 
       <DestinationList
         destinations={destinations}
         loading={loading}
         onRefresh={loadDestinations}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+        deletingDestinationId={deletingDestinationId}
       />
     </div>
   )

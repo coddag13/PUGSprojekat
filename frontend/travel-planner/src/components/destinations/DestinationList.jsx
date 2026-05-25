@@ -1,6 +1,13 @@
 import DestinationCard from './DestinationCard'
 
-function DestinationList({ destinations, loading, onRefresh }) {
+function DestinationList({
+  destinations,
+  loading,
+  onRefresh,
+  onEdit,
+  onDelete,
+  deletingDestinationId,
+}) {
   return (
     <section className="rounded-[2rem] bg-white p-6 shadow-lg">
       <div className="mb-5 flex items-center justify-between">
@@ -26,7 +33,13 @@ function DestinationList({ destinations, loading, onRefresh }) {
       ) : (
         <div className="grid gap-4">
           {destinations.map((destination) => (
-            <DestinationCard key={destination.id} destination={destination} />
+            <DestinationCard
+              key={destination.id}
+              destination={destination}
+              onEdit={onEdit}
+              onDelete={onDelete}
+              isDeleting={deletingDestinationId === destination.id}
+            />
           ))}
         </div>
       )}

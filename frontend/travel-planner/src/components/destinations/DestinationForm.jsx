@@ -3,12 +3,16 @@ function DestinationForm({
   plan,
   error,
   saving,
+  submitLabel,
+  title,
   onChange,
   onSubmit,
+  onCancel,
+  showCancel = false,
 }) {
   return (
     <section className="rounded-[2rem] bg-white p-6 shadow-lg">
-      <h2 className="text-2xl font-bold text-slate-900">Nova destinacija</h2>
+      <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
 
       <form className="mt-6 space-y-4" onSubmit={onSubmit}>
         <label className="block">
@@ -94,13 +98,26 @@ function DestinationForm({
           </div>
         ) : null}
 
-        <button
-          className="w-full rounded-2xl bg-amber-300 px-4 py-3 font-bold text-slate-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
-          type="submit"
-          disabled={saving}
-        >
-          {saving ? 'Čuva se...' : 'Dodaj destinaciju'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            className="flex-1 rounded-2xl bg-amber-300 px-4 py-3 font-bold text-slate-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
+            type="submit"
+            disabled={saving}
+          >
+            {saving ? 'Čuva se...' : submitLabel}
+          </button>
+
+          {showCancel ? (
+            <button
+              className="rounded-2xl border border-slate-300 px-4 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
+              type="button"
+              onClick={onCancel}
+              disabled={saving}
+            >
+              Otkaži
+            </button>
+          ) : null}
+        </div>
       </form>
     </section>
   )

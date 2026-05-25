@@ -10,3 +10,16 @@ export async function createDestination(travelPlanId, payload) {
     body: payload,
   })
 }
+
+export async function updateDestination(travelPlanId, destinationId, payload) {
+  return httpClient(`/travel-plans/${travelPlanId}/destinations/${destinationId}`, {
+    method: 'PUT',
+    body: payload,
+  })
+}
+
+export async function deleteDestination(travelPlanId, destinationId) {
+  return httpClient(`/travel-plans/${travelPlanId}/destinations/${destinationId}`, {
+    method: 'DELETE',
+  })
+}
