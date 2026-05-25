@@ -1,8 +1,8 @@
 import { QRCode } from 'react-qr-code'
 
 const ACCESS_LABELS = {
-  0: 'View',
-  1: 'Edit',
+  0: 'Pregled',
+  1: 'Uređivanje',
 }
 
 const ACCESS_CLASSES = {
@@ -15,14 +15,14 @@ function ShareTokenCard({ token, sharedUrl, onDelete, isDeleting, onCopy }) {
 
   return (
     <article className="rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,#fffaf0_0%,#f8fbff_100%)] p-5 shadow-sm">
-      <div className="grid gap-5 lg:grid-cols-[1fr_180px] lg:items-start">
+      <div className="grid gap-5 lg:grid-cols-[1fr_144px] lg:items-start">
         <div>
           <div className="flex flex-wrap items-center gap-3">
             <span className={`rounded-full px-3 py-1 text-sm font-semibold ${accessClass}`}>
-              {ACCESS_LABELS[token.accessType] ?? 'Unknown'}
+              {ACCESS_LABELS[token.accessType] ?? 'Nepoznato'}
             </span>
             <span className="rounded-full bg-slate-100 px-3 py-1 text-sm text-slate-700">
-              Istice: {token.expiresAt.replace('T', ' ').slice(0, 16)}
+              Ističe: {token.expiresAt.replace('T', ' ').slice(0, 16)}
             </span>
           </div>
 
@@ -45,15 +45,14 @@ function ShareTokenCard({ token, sharedUrl, onDelete, isDeleting, onCopy }) {
               onClick={() => onDelete(token)}
               disabled={isDeleting}
             >
-              {isDeleting ? 'Brise se...' : 'Obrisi token'}
+              {isDeleting ? 'Briše se...' : 'Obriši pristup'}
             </button>
           </div>
         </div>
 
-        <div className="rounded-3xl bg-white p-4 shadow-sm">
-          <p className="mb-3 text-center text-sm font-semibold text-slate-700">QR kod</p>
-          <div className="rounded-2xl bg-white p-3">
-            <QRCode value={sharedUrl} size={140} className="h-auto w-full" />
+        <div className="flex justify-center">
+          <div className="rounded-[1.6rem] bg-white p-4 shadow-md">
+            <QRCode value={sharedUrl} size={112} />
           </div>
         </div>
       </div>

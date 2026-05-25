@@ -48,7 +48,7 @@ function ChecklistItemCard({ item, onToggle, isUpdating, allowToggle = true }) {
                   : 'bg-amber-100 text-amber-900',
               ].join(' ')}
             >
-              {item.isCompleted ? 'Zavrseno' : 'U toku'}
+              {item.isCompleted ? 'Završeno' : 'U toku'}
             </p>
           </div>
         </div>

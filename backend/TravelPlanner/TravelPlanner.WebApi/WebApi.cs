@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -7,6 +8,9 @@ using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
 using System.Fabric;
 using System.Text;
+using TravelPlanner.Common.Enums;
+using TravelPlanner.Infrastructure.Entities;
+using TravelPlanner.Infrastructure.Persistence;
 
 namespace TravelPlanner.WebApi
 {
@@ -70,6 +74,8 @@ namespace TravelPlanner.WebApi
                             });
 
                         builder.Services.AddAuthorization();
+                        builder.Services.AddDbContext<TravelPlannerDbContext>(options =>
+                            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
                         builder.Services.AddControllers();
                         builder.Services.AddEndpointsApiExplorer();
                         builder.Services.AddSwaggerGen(options =>
@@ -107,6 +113,7 @@ namespace TravelPlanner.WebApi
                         });
 
                         var app = builder.Build();
+                        SeedAdminUser(app);
 
                         if (app.Environment.IsDevelopment())
                         {
@@ -122,6 +129,42 @@ namespace TravelPlanner.WebApi
                         return app;
                     }))
             };
+        }
+
+        private static void SeedAdminUser(WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+            var db = scope.ServiceProvider.GetRequiredService<TravelPlannerDbContext>();
+
+            var adminEmail = configuration["AdminSeed:Email"]?.Trim().ToLowerInvariant();
+            var adminPassword = configuration["AdminSeed:Password"]?.Trim();
+
+            if (string.IsNullOrWhiteSpace(adminEmail) || string.IsNullOrWhiteSpace(adminPassword))
+                return;
+
+            var existingAdmin = db.Users.FirstOrDefault(u => u.Email == adminEmail);
+            if (existingAdmin is null)
+            {
+                db.Users.Add(new User
+                {
+                    Id = Guid.NewGuid(),
+                    FirstName = configuration["AdminSeed:FirstName"]?.Trim() ?? "System",
+                    LastName = configuration["AdminSeed:LastName"]?.Trim() ?? "Admin",
+                    Email = adminEmail,
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
+                    Role = UserRole.Admin
+                });
+
+                db.SaveChanges();
+                return;
+            }
+
+            if (existingAdmin.Role != UserRole.Admin)
+            {
+                existingAdmin.Role = UserRole.Admin;
+                db.SaveChanges();
+            }
         }
     }
 }

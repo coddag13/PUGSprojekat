@@ -113,7 +113,11 @@ function TravelPlansPage() {
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
       <div className="mx-auto max-w-7xl">
-        <TravelPlansHeader firstName={user?.firstName} onLogout={logout} />
+        <TravelPlansHeader
+          firstName={user?.firstName}
+          isAdmin={user?.role === 'Admin'}
+          onLogout={logout}
+        />
 
         <div className="grid gap-6 lg:grid-cols-[430px_1fr]">
           <TravelPlanForm

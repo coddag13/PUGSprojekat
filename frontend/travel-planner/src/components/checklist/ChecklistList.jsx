@@ -7,7 +7,7 @@ function ChecklistList({
   onToggle,
   updatingItemId,
   allowToggle = true,
-  title = 'Checklist',
+  title = 'Lista stvari',
 }) {
   return (
     <section className="rounded-[2rem] bg-white p-6 shadow-lg">

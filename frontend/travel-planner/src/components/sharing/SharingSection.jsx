@@ -81,7 +81,7 @@ function SharingSection({ travelPlanId }) {
         expiresAt: '',
       })
 
-      setSuccess('Share token je uspješno kreiran.')
+      setSuccess('Pristup za dijeljenje je uspješno kreiran.')
       await loadTokens()
     } catch (err) {
       setError(err.message)
@@ -97,7 +97,7 @@ function SharingSection({ travelPlanId }) {
 
     try {
       await deleteShareToken(travelPlanId, token.id)
-      setSuccess('Share token je obrisan.')
+      setSuccess('Pristup za dijeljenje je obrisan.')
       await loadTokens()
     } catch (err) {
       setError(err.message)

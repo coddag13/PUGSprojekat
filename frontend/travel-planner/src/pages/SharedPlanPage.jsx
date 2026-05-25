@@ -102,7 +102,7 @@ function SharedPlanPage() {
         text: item.text,
         isCompleted: !item.isCompleted,
       })
-      setSuccess('Checklist stavka je azurirana.')
+      setSuccess('Stavka liste je ažurirana.')
       await loadSharedPlan()
     } catch (err) {
       setError(err.message)
@@ -151,7 +151,7 @@ function SharedPlanPage() {
               onToggle={handleChecklistToggle}
               updatingItemId={updatingChecklistId}
               allowToggle={isEditMode}
-              title="Checklist"
+              title="Lista stvari"
             />
           </div>
         )
@@ -164,7 +164,7 @@ function SharedPlanPage() {
     return (
       <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
         <div className="mx-auto max-w-7xl rounded-[2rem] bg-white p-10 text-center text-slate-500 shadow-lg">
-          Ucitavanje dijeljenog plana...
+          Učitavanje dijeljenog plana...
         </div>
       </main>
     )

@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 
 const STATUS_LABELS = {
-  0: 'Planned',
-  1: 'Reserved',
-  2: 'Completed',
-  3: 'Cancelled',
+  0: 'Planirano',
+  1: 'Rezervisano',
+  2: 'Završeno',
+  3: 'Otkazano',
 }
 
 const STATUS_CLASSES = {
@@ -60,7 +60,7 @@ function ActivityCard({
           <p className="mt-2 text-slate-700">{activity.location}</p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <div className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
             {activity.estimatedCost} EUR
           </div>
@@ -88,14 +88,12 @@ function ActivityCard({
         <span className="rounded-full bg-amber-100 px-3 py-1">{activity.date.slice(0, 10)}</span>
         <span className="rounded-full bg-sky-100 px-3 py-1">{activity.time.slice(0, 5)}</span>
         <span className={`rounded-full border px-3 py-1 font-semibold ${currentStatusClass}`}>
-          {STATUS_LABELS[activity.status] ?? 'Unknown'}
+          {STATUS_LABELS[activity.status] ?? 'Nepoznato'}
         </span>
       </div>
 
       {destinationName ? (
-        <p className="mt-4 text-sm font-medium text-slate-600">
-          Destinacija: {destinationName}
-        </p>
+        <p className="mt-4 text-sm font-medium text-slate-600">Destinacija: {destinationName}</p>
       ) : null}
 
       {activity.description ? (
@@ -119,19 +117,17 @@ function ActivityCard({
         <div className="mt-5 rounded-2xl border border-slate-200 bg-white/80 p-4">
           <div className="grid gap-3 md:grid-cols-[1fr_auto_auto] md:items-end">
             <label className="block">
-              <span className="mb-2 block text-sm font-semibold text-slate-700">
-                Novi status
-              </span>
+              <span className="mb-2 block text-sm font-semibold text-slate-700">Novi status</span>
               <select
                 className={`w-full rounded-2xl border px-4 py-3 outline-none transition ${statusClass}`}
                 value={selectedStatus}
                 onChange={(event) => setSelectedStatus(event.target.value)}
                 disabled={isUpdating}
               >
-                <option value="0">Planned</option>
-                <option value="1">Reserved</option>
-                <option value="2">Completed</option>
-                <option value="3">Cancelled</option>
+                <option value="0">Planirano</option>
+                <option value="1">Rezervisano</option>
+                <option value="2">Završeno</option>
+                <option value="3">Otkazano</option>
               </select>
             </label>
 

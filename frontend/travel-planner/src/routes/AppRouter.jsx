@@ -1,5 +1,7 @@
+import AdminRoute from '../components/AdminRoute'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import ProtectedRoute from '../components/ProtectedRoute'
+import AdminPage from '../pages/AdminPage'
 import LoginPage from '../pages/LoginPage'
 import RegisterPage from '../pages/RegisterPage'
 import SharedPlanPage from '../pages/SharedPlanPage'
@@ -17,6 +19,10 @@ function AppRouter() {
       <Route element={<ProtectedRoute />}>
         <Route path="/travel-plans" element={<TravelPlansPage />} />
         <Route path="/travel-plans/:id" element={<TravelPlanDetailsPage />} />
+      </Route>
+
+      <Route element={<AdminRoute />}>
+        <Route path="/admin" element={<AdminPage />} />
       </Route>
     </Routes>
   )

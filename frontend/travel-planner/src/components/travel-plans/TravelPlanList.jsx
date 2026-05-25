@@ -2,12 +2,15 @@ import TravelPlanCard from './TravelPlanCard'
 
 function TravelPlanList({ plans, loading, onRefresh }) {
   return (
-    <section className="rounded-[2rem] bg-white p-6 shadow-lg">
+    <section className="rounded-[2rem] border border-white/70 bg-white/85 p-6 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm">
       <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Moji planovi</h2>
+        <div>
+          <p className="text-sm uppercase tracking-[0.25em] text-sky-700">Pregled</p>
+          <h2 className="mt-2 text-2xl font-black text-slate-900">Moji planovi</h2>
+        </div>
 
         <button
-          className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
           type="button"
           onClick={onRefresh}
         >
