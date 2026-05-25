@@ -329,11 +329,14 @@ namespace TravelPlanner.PlanService
             if (destination is null)
                 return false;
 
-            var hasActivities = await db.PlanActivities.AnyAsync(a =>
-                a.TravelPlanId == travelPlanId && a.DestinationId == id);
+            var relatedActivities = await db.PlanActivities
+                .Where(a => a.TravelPlanId == travelPlanId && a.DestinationId == id)
+                .ToListAsync();
 
-            if (hasActivities)
-                return false;
+            if (relatedActivities.Count > 0)
+            {
+                db.PlanActivities.RemoveRange(relatedActivities);
+            }
 
             db.Destinations.Remove(destination);
             await db.SaveChangesAsync();
