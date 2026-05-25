@@ -5,8 +5,12 @@ function ActivityForm({
   selectedDestination,
   error,
   saving,
+  title,
+  submitLabel,
   onChange,
   onSubmit,
+  onCancel,
+  showCancel = false,
 }) {
   const minDate = selectedDestination
     ? selectedDestination.arrivalDate.slice(0, 10)
@@ -18,7 +22,7 @@ function ActivityForm({
 
   return (
     <section className="rounded-[2rem] bg-white p-6 shadow-lg">
-      <h2 className="text-2xl font-bold text-slate-900">Nova aktivnost</h2>
+      <h2 className="text-2xl font-bold text-slate-900">{title}</h2>
 
       <form className="mt-6 space-y-4" onSubmit={onSubmit}>
         <label className="block">
@@ -120,20 +124,20 @@ function ActivityForm({
         </label>
 
         <label className="block">
-        <span className="mb-2 block text-sm font-semibold text-slate-700">
+          <span className="mb-2 block text-sm font-semibold text-slate-700">
             Status
-        </span>
-        <select
+          </span>
+          <select
             className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-amber-500"
             name="status"
             value={form.status}
             onChange={onChange}
-        >
+          >
             <option value="0">Planned</option>
             <option value="1">Reserved</option>
             <option value="2">Completed</option>
             <option value="3">Cancelled</option>
-        </select>
+          </select>
         </label>
 
         <label className="block">
@@ -155,13 +159,26 @@ function ActivityForm({
           </div>
         ) : null}
 
-        <button
-          className="w-full rounded-2xl bg-amber-300 px-4 py-3 font-bold text-slate-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
-          type="submit"
-          disabled={saving}
-        >
-          {saving ? 'Čuva se...' : 'Dodaj aktivnost'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            className="flex-1 rounded-2xl bg-amber-300 px-4 py-3 font-bold text-slate-900 transition hover:bg-amber-200 disabled:cursor-not-allowed disabled:opacity-60"
+            type="submit"
+            disabled={saving}
+          >
+            {saving ? 'Čuva se...' : submitLabel}
+          </button>
+
+          {showCancel ? (
+            <button
+              className="rounded-2xl border border-slate-300 px-4 py-3 font-semibold text-slate-700 transition hover:bg-slate-50"
+              type="button"
+              onClick={onCancel}
+              disabled={saving}
+            >
+              Otkaži
+            </button>
+          ) : null}
+        </div>
       </form>
     </section>
   )

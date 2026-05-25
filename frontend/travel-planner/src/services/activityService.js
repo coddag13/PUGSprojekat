@@ -17,3 +17,9 @@ export async function updateActivity(travelPlanId, activityId, payload) {
     body: payload,
   })
 }
+
+export async function deleteActivity(travelPlanId, activityId) {
+  return httpClient(`/travel-plans/${travelPlanId}/activities/${activityId}`, {
+    method: 'DELETE',
+  })
+}

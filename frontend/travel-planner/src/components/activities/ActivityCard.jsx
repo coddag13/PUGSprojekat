@@ -18,7 +18,10 @@ function ActivityCard({
   activity,
   destinationName,
   onStatusChange,
+  onEdit,
+  onDelete,
   isUpdating,
+  isDeleting,
   allowStatusEdit = true,
 }) {
   const [selectedStatus, setSelectedStatus] = useState(String(activity.status))
@@ -28,12 +31,12 @@ function ActivityCard({
     setSelectedStatus(String(activity.status))
   }, [activity.status])
 
-  const handleStartEditing = () => {
+  const handleStartEditingStatus = () => {
     setSelectedStatus(String(activity.status))
     setIsEditingStatus(true)
   }
 
-  const handleCancelEditing = () => {
+  const handleCancelEditingStatus = () => {
     setSelectedStatus(String(activity.status))
     setIsEditingStatus(false)
   }
@@ -57,14 +60,33 @@ function ActivityCard({
           <p className="mt-2 text-slate-700">{activity.location}</p>
         </div>
 
-        <div className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-          {activity.estimatedCost} EUR
+        <div className="flex gap-3">
+          <div className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
+            {activity.estimatedCost} EUR
+          </div>
+
+          <button
+            className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+            type="button"
+            onClick={() => onEdit(activity)}
+          >
+            Izmijeni
+          </button>
+
+          <button
+            className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+            type="button"
+            onClick={() => onDelete(activity)}
+            disabled={isDeleting}
+          >
+            {isDeleting ? 'Briše se...' : 'Obriši'}
+          </button>
         </div>
       </div>
 
       <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-600">
         <span className="rounded-full bg-amber-100 px-3 py-1">{activity.date.slice(0, 10)}</span>
-        <span className="rounded-full bg-sky-100 px-3 py-1">{activity.time}</span>
+        <span className="rounded-full bg-sky-100 px-3 py-1">{activity.time.slice(0, 5)}</span>
         <span className={`rounded-full border px-3 py-1 font-semibold ${currentStatusClass}`}>
           {STATUS_LABELS[activity.status] ?? 'Unknown'}
         </span>
@@ -87,7 +109,7 @@ function ActivityCard({
           <button
             className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
             type="button"
-            onClick={handleStartEditing}
+            onClick={handleStartEditingStatus}
             disabled={isUpdating}
           >
             Promijeni status
@@ -125,7 +147,7 @@ function ActivityCard({
             <button
               className="rounded-2xl border border-slate-300 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
               type="button"
-              onClick={handleCancelEditing}
+              onClick={handleCancelEditingStatus}
               disabled={isUpdating}
             >
               Otkaži

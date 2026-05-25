@@ -1,17 +1,16 @@
 import { useEffect, useState } from 'react'
-import { createActivity, getActivities, updateActivity } from '../../services/activityService'
+import {
+  createActivity,
+  deleteActivity,
+  getActivities,
+  updateActivity,
+} from '../../services/activityService'
 import { getDestinations } from '../../services/destinationService'
 import ActivityForm from './ActivityForm'
 import ActivityList from './ActivityList'
 
 function ActivitiesSection({ travelPlanId, plan }) {
-  const [activities, setActivities] = useState([])
-  const [destinations, setDestinations] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [error, setError] = useState('')
-  const [updatingActivityId, setUpdatingActivityId] = useState(null)
-  const [form, setForm] = useState({
+  const emptyForm = {
     destinationId: '',
     name: '',
     date: '',
@@ -20,7 +19,17 @@ function ActivitiesSection({ travelPlanId, plan }) {
     description: '',
     estimatedCost: '',
     status: '0',
-  })
+  }
+
+  const [activities, setActivities] = useState([])
+  const [destinations, setDestinations] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [updatingActivityId, setUpdatingActivityId] = useState(null)
+  const [deletingActivityId, setDeletingActivityId] = useState(null)
+  const [editingActivityId, setEditingActivityId] = useState(null)
+  const [form, setForm] = useState(emptyForm)
 
   const selectedDestination = destinations.find(
     (destination) => destination.id === form.destinationId,
@@ -54,8 +63,17 @@ function ActivitiesSection({ travelPlanId, plan }) {
     setForm((current) => ({ ...current, [name]: value }))
   }
 
+  const resetForm = () => {
+    setForm(emptyForm)
+    setEditingActivityId(null)
+  }
+
   const hasSameSlotConflict = () => {
     return activities.some((activity) => {
+      if (activity.id === editingActivityId) {
+        return false
+      }
+
       return activity.date.slice(0, 10) === form.date && activity.time.slice(0, 5) === form.time
     })
   }
@@ -102,6 +120,17 @@ function ActivitiesSection({ travelPlanId, plan }) {
     return ''
   }
 
+  const buildPayload = () => ({
+    destinationId: form.destinationId || null,
+    name: form.name.trim(),
+    date: `${form.date}T00:00:00`,
+    time: `${form.time}:00`,
+    location: form.location.trim(),
+    description: form.description.trim(),
+    estimatedCost: Number(form.estimatedCost),
+    status: Number(form.status),
+  })
+
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
@@ -115,33 +144,60 @@ function ActivitiesSection({ travelPlanId, plan }) {
     setSaving(true)
 
     try {
-      await createActivity(travelPlanId, {
-        destinationId: form.destinationId || null,
-        name: form.name.trim(),
-        date: `${form.date}T00:00:00`,
-        time: `${form.time}:00`,
-        location: form.location.trim(),
-        description: form.description.trim(),
-        estimatedCost: Number(form.estimatedCost),
-        status: Number(form.status),
-      })
+      const payload = buildPayload()
 
-      setForm({
-        destinationId: '',
-        name: '',
-        date: '',
-        time: '',
-        location: '',
-        description: '',
-        estimatedCost: '',
-        status: '0',
-      })
+      if (editingActivityId) {
+        await updateActivity(travelPlanId, editingActivityId, payload)
+      } else {
+        await createActivity(travelPlanId, payload)
+      }
 
+      resetForm()
       await loadData()
     } catch (err) {
       setError(err.message)
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleEdit = (activity) => {
+    setError('')
+    setEditingActivityId(activity.id)
+    setForm({
+      destinationId: activity.destinationId ?? '',
+      name: activity.name,
+      date: activity.date.slice(0, 10),
+      time: activity.time.slice(0, 5),
+      location: activity.location,
+      description: activity.description ?? '',
+      estimatedCost: String(activity.estimatedCost),
+      status: String(activity.status),
+    })
+  }
+
+  const handleDelete = async (activity) => {
+    const confirmed = window.confirm(`Da li sigurno želiš obrisati aktivnost "${activity.name}"?`)
+
+    if (!confirmed) {
+      return
+    }
+
+    setError('')
+    setDeletingActivityId(activity.id)
+
+    try {
+      await deleteActivity(travelPlanId, activity.id)
+
+      if (editingActivityId === activity.id) {
+        resetForm()
+      }
+
+      await loadData()
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setDeletingActivityId(null)
     }
   }
 
@@ -185,8 +241,12 @@ function ActivitiesSection({ travelPlanId, plan }) {
           selectedDestination={selectedDestination}
           error=""
           saving={saving}
+          title={editingActivityId ? 'Izmjena aktivnosti' : 'Nova aktivnost'}
+          submitLabel={editingActivityId ? 'Sačuvaj izmjene' : 'Dodaj aktivnost'}
           onChange={handleChange}
           onSubmit={handleSubmit}
+          onCancel={resetForm}
+          showCancel={Boolean(editingActivityId)}
         />
 
         <ActivityList
@@ -195,7 +255,10 @@ function ActivitiesSection({ travelPlanId, plan }) {
           loading={loading}
           onRefresh={loadData}
           onStatusChange={handleStatusChange}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
           updatingActivityId={updatingActivityId}
+          deletingActivityId={deletingActivityId}
         />
       </div>
     </div>
