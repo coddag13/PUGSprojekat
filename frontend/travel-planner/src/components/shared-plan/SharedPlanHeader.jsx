@@ -1,6 +1,6 @@
 const ACCESS_LABELS = {
-  0: 'VIEW',
-  1: 'EDIT',
+  0: 'Pregled',
+  1: 'Uređivanje',
 }
 
 const ACCESS_CLASSES = {
@@ -22,10 +22,10 @@ function SharedPlanHeader({ plan, accessType }) {
 
         <div className="flex flex-col items-end gap-3">
           <span className={`rounded-full px-4 py-2 text-sm font-bold ${accessClass}`}>
-            {ACCESS_LABELS[accessType] ?? 'UNKNOWN'}
+            {ACCESS_LABELS[accessType] ?? 'Nepoznato'}
           </span>
           <div className="rounded-3xl bg-white/10 px-5 py-4 text-right">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-300">Budzet</p>
+            <p className="text-sm uppercase tracking-[0.2em] text-slate-300">Budžet</p>
             <p className="mt-2 text-3xl font-bold text-amber-300">{plan.plannedBudget} EUR</p>
           </div>
         </div>
@@ -33,7 +33,7 @@ function SharedPlanHeader({ plan, accessType }) {
 
       <div className="mt-6 flex flex-wrap gap-3 text-sm">
         <span className="rounded-full bg-amber-100 px-4 py-2 font-semibold text-slate-900">
-          Pocetak: {plan.startDate.slice(0, 10)}
+          Početak: {plan.startDate.slice(0, 10)}
         </span>
         <span className="rounded-full bg-sky-100 px-4 py-2 font-semibold text-slate-900">
           Kraj: {plan.endDate.slice(0, 10)}

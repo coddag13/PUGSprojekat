@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.ServiceFabric.Services.Client;
+using Microsoft.ServiceFabric.Services.Remoting.Client;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;
 using Microsoft.ServiceFabric.Services.Remoting.Runtime;
 using Microsoft.ServiceFabric.Services.Runtime;
@@ -47,8 +49,8 @@ namespace TravelPlanner.SharingService
         public async Task<ServiceResponse<ShareTokenData>> CreateTokenAsync(Guid travelPlanId, ShareAccessType accessType, DateTime expiresAt)
         {
             using var db = CreateDbContext();
-            var planExists = await db.TravelPlans.AnyAsync(p => p.Id == travelPlanId);
-            if (!planExists) return ServiceResponse<ShareTokenData>.Fail("Travel plan not found.");
+            var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
+            if (plan is null) return ServiceResponse<ShareTokenData>.Fail("Travel plan not found.");
 
             if (expiresAt <= DateTime.UtcNow)
                 return ServiceResponse<ShareTokenData>.Fail("Expiry date must be in the future.");
@@ -108,12 +110,29 @@ namespace TravelPlanner.SharingService
             return result;
         }
 
-        private TravelPlannerDbContext CreateDbContext()
+        public async Task DeleteTokensByPlanAsync(Guid travelPlanId)
         {
-            var options = new DbContextOptionsBuilder<TravelPlannerDbContext>()
+            using var db = CreateDbContext();
+            var tokens = await db.ShareTokens.Where(t => t.TravelPlanId == travelPlanId).ToListAsync();
+
+            if (tokens.Count == 0)
+                return;
+
+            db.ShareTokens.RemoveRange(tokens);
+            await db.SaveChangesAsync();
+        }
+
+        private static IPlanService PlanService =>
+            ServiceProxy.Create<IPlanService>(
+                new Uri("fabric:/TravelPlanner/TravelPlanner.PlanService"),
+                new ServicePartitionKey(0));
+
+        private SharingDbContext CreateDbContext()
+        {
+            var options = new DbContextOptionsBuilder<SharingDbContext>()
                 .UseSqlServer(_connectionString)
                 .Options;
-            return new TravelPlannerDbContext(options);
+            return new SharingDbContext(options);
         }
 
         private static ShareTokenData MapToData(ShareToken t) => new()

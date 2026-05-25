@@ -11,5 +11,6 @@ namespace TravelPlanner.Common.Interfaces
         Task<bool> DeleteTokenAsync(Guid travelPlanId, Guid id);
         Task<ServiceResponse<ShareTokenData>> ValidateTokenAsync(string token);
         Task<ServiceResponse<ShareTokenData>> ValidateTokenForPlanAsync(Guid travelPlanId, string token);
+        Task DeleteTokensByPlanAsync(Guid travelPlanId);
     }
 }

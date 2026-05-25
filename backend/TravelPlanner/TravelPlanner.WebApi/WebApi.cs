@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -74,8 +76,12 @@ namespace TravelPlanner.WebApi
                             });
 
                         builder.Services.AddAuthorization();
-                        builder.Services.AddDbContext<TravelPlannerDbContext>(options =>
-                            options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+                        builder.Services.AddDbContext<AuthDbContext>(options =>
+                            options.UseSqlServer(builder.Configuration.GetConnectionString("AuthConnection")));
+                        builder.Services.AddDbContext<PlanDbContext>(options =>
+                            options.UseSqlServer(builder.Configuration.GetConnectionString("PlanConnection")));
+                        builder.Services.AddDbContext<SharingDbContext>(options =>
+                            options.UseSqlServer(builder.Configuration.GetConnectionString("SharingConnection")));
                         builder.Services.AddControllers();
                         builder.Services.AddEndpointsApiExplorer();
                         builder.Services.AddSwaggerGen(options =>
@@ -113,6 +119,7 @@ namespace TravelPlanner.WebApi
                         });
 
                         var app = builder.Build();
+                        EnsureServiceDatabases(app);
                         SeedAdminUser(app);
 
                         if (app.Environment.IsDevelopment())
@@ -135,7 +142,7 @@ namespace TravelPlanner.WebApi
         {
             using var scope = app.Services.CreateScope();
             var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-            var db = scope.ServiceProvider.GetRequiredService<TravelPlannerDbContext>();
+            var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
 
             var adminEmail = configuration["AdminSeed:Email"]?.Trim().ToLowerInvariant();
             var adminPassword = configuration["AdminSeed:Password"]?.Trim();
@@ -164,6 +171,42 @@ namespace TravelPlanner.WebApi
             {
                 existingAdmin.Role = UserRole.Admin;
                 db.SaveChanges();
+            }
+        }
+
+        private static void EnsureServiceDatabases(WebApplication app)
+        {
+            using var scope = app.Services.CreateScope();
+            var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+            var authDb = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+            var planDb = scope.ServiceProvider.GetRequiredService<PlanDbContext>();
+            var sharingDb = scope.ServiceProvider.GetRequiredService<SharingDbContext>();
+
+            EnsureDatabaseReady(authDb.Database);
+            EnsureDatabaseReady(planDb.Database);
+            EnsureDatabaseReady(sharingDb.Database);
+
+        }
+
+        private static void EnsureDatabaseReady(DatabaseFacade database)
+        {
+            try
+            {
+                database.CanConnect();
+            }
+            catch (SqlException)
+            {
+                // If the database is not reachable yet, try creating it below.
+            }
+
+            try
+            {
+                database.EnsureCreated();
+            }
+            catch (SqlException)
+            {
+                // In local debug, databases may already exist while the SQL login
+                // still lacks CREATE DATABASE permission. In that case we just continue.
             }
         }
     }

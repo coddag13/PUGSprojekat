@@ -12,6 +12,7 @@ function ActivityList({
   updatingActivityId,
   deletingActivityId,
   allowStatusEdit = true,
+  allowItemActions = true,
 }) {
   const getDestinationName = (destinationId) => {
     if (!destinationId) {
@@ -88,6 +89,7 @@ function ActivityList({
                       isUpdating={updatingActivityId === activity.id}
                       isDeleting={deletingActivityId === activity.id}
                       allowStatusEdit={allowStatusEdit}
+                      allowItemActions={allowItemActions}
                     />
                   ))}
                 </div>

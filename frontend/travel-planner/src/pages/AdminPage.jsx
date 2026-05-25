@@ -276,14 +276,23 @@ function AdminPage() {
                         </p>
                       </div>
 
-                      <button
-                        className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        type="button"
-                        onClick={() => handleDeletePlan(plan)}
-                        disabled={deletingPlanId === plan.id}
-                      >
-                        {deletingPlanId === plan.id ? 'Briše se...' : 'Obriši plan'}
-                      </button>
+                      <div className="flex flex-wrap gap-3">
+                        <Link
+                          className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                          to={`/travel-plans/${plan.id}`}
+                        >
+                          Otvori plan
+                        </Link>
+
+                        <button
+                          className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          type="button"
+                          onClick={() => handleDeletePlan(plan)}
+                          disabled={deletingPlanId === plan.id}
+                        >
+                          {deletingPlanId === plan.id ? 'Briše se...' : 'Obriši plan'}
+                        </button>
+                      </div>
                     </div>
                   </article>
                 ))}

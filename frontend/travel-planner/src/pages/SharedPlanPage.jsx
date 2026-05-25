@@ -127,6 +127,7 @@ function SharedPlanPage() {
             onStatusChange={handleActivityStatusChange}
             updatingActivityId={updatingActivityId}
             allowStatusEdit={isEditMode}
+            allowItemActions={false}
           />
         )
       case 'expenses':

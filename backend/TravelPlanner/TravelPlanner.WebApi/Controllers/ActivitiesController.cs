@@ -122,7 +122,7 @@ namespace TravelPlanner.WebApi.Controllers
             if (plan is null)
                 return NotFound("Travel plan not found.");
 
-            if (plan.OwnerId != ownerId)
+            if (plan.OwnerId != ownerId && !IsAdmin())
                 return Forbid();
 
             return null;
@@ -132,6 +132,11 @@ namespace TravelPlanner.WebApi.Controllers
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
             return Guid.Parse(claim!.Value);
+        }
+
+        private bool IsAdmin()
+        {
+            return User.IsInRole("Admin");
         }
 
         private static ActivityResponseDto MapToResponse(ActivityData activity)

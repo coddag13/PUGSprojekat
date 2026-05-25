@@ -23,6 +23,7 @@ function ActivityCard({
   isUpdating,
   isDeleting,
   allowStatusEdit = true,
+  allowItemActions = true,
 }) {
   const [selectedStatus, setSelectedStatus] = useState(String(activity.status))
   const [isEditingStatus, setIsEditingStatus] = useState(false)
@@ -65,22 +66,26 @@ function ActivityCard({
             {activity.estimatedCost} EUR
           </div>
 
-          <button
-            className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
-            type="button"
-            onClick={() => onEdit(activity)}
-          >
-            Izmijeni
-          </button>
+          {allowItemActions ? (
+            <button
+              className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+              type="button"
+              onClick={() => onEdit(activity)}
+            >
+              Izmijeni
+            </button>
+          ) : null}
 
-          <button
-            className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
-            type="button"
-            onClick={() => onDelete(activity)}
-            disabled={isDeleting}
-          >
-            {isDeleting ? 'Briše se...' : 'Obriši'}
-          </button>
+          {allowItemActions ? (
+            <button
+              className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+              type="button"
+              onClick={() => onDelete(activity)}
+              disabled={isDeleting}
+            >
+              {isDeleting ? 'Briše se...' : 'Obriši'}
+            </button>
+          ) : null}
         </div>
       </div>
 

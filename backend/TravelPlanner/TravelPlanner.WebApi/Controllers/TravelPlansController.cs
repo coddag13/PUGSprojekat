@@ -19,6 +19,9 @@ namespace TravelPlanner.WebApi.Controllers
                 new Uri("fabric:/TravelPlanner/TravelPlanner.PlanService"),
                 new ServicePartitionKey(0));
 
+        private static ISharingService SharingService =>
+            ServiceProxy.Create<ISharingService>(new Uri("fabric:/TravelPlanner/TravelPlanner.SharingService"));
+
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
@@ -37,7 +40,7 @@ namespace TravelPlanner.WebApi.Controllers
             if (plan is null)
                 return NotFound();
 
-            if (plan.OwnerId != ownerId)
+            if (plan.OwnerId != ownerId && !IsAdmin())
                 return Forbid();
 
             return Ok(MapToResponse(plan));
@@ -83,7 +86,7 @@ namespace TravelPlanner.WebApi.Controllers
             if (existingPlan is null)
                 return NotFound();
 
-            if (existingPlan.OwnerId != ownerId)
+            if (existingPlan.OwnerId != ownerId && !IsAdmin())
                 return Forbid();
 
             var updated = await PlanService.UpdatePlanAsync(
@@ -110,12 +113,14 @@ namespace TravelPlanner.WebApi.Controllers
             if (existingPlan is null)
                 return NotFound();
 
-            if (existingPlan.OwnerId != ownerId)
+            if (existingPlan.OwnerId != ownerId && !IsAdmin())
                 return Forbid();
 
             var deleted = await PlanService.DeletePlanAsync(id);
             if (!deleted)
                 return NotFound();
+
+            await SharingService.DeleteTokensByPlanAsync(id);
 
             return NoContent();
         }
@@ -139,6 +144,11 @@ namespace TravelPlanner.WebApi.Controllers
         {
             var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
             return Guid.Parse(claim!.Value);
+        }
+
+        private bool IsAdmin()
+        {
+            return User.IsInRole("Admin");
         }
     }
 }

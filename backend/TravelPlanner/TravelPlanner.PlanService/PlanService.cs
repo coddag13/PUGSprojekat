@@ -84,10 +84,6 @@ namespace TravelPlanner.PlanService
             if (plannedBudget < 0)
                 return ServiceResponse<TravelPlanData>.Fail("Planned budget cannot be negative.");
 
-            var ownerExists = await db.Users.AnyAsync(u => u.Id == ownerId);
-            if (!ownerExists)
-                return ServiceResponse<TravelPlanData>.Fail("Owner not found.");
-
             var plan = new TravelPlan
             {
                 Id = Guid.NewGuid(),
@@ -310,7 +306,7 @@ namespace TravelPlanner.PlanService
 
 
         private static async Task<bool> HasDestinationOverlapAsync(
-    TravelPlannerDbContext db,
+    PlanDbContext db,
     Guid travelPlanId,
     DateTime arrivalDate,
     DateTime departureDate,
@@ -345,7 +341,7 @@ namespace TravelPlanner.PlanService
         }
 
         private static async Task<bool> HasActivityScheduleConflictAsync(
-    TravelPlannerDbContext db,
+    PlanDbContext db,
     Guid travelPlanId,
     DateTime date,
     TimeSpan time,
@@ -359,7 +355,7 @@ namespace TravelPlanner.PlanService
         }
 
         private static async Task<decimal> GetCommittedAmountAsync(
-            TravelPlannerDbContext db,
+            PlanDbContext db,
             Guid travelPlanId,
             Guid? excludeActivityId = null,
             Guid? excludeExpenseId = null)
@@ -388,7 +384,7 @@ namespace TravelPlanner.PlanService
         }
 
         private static async Task<bool> WouldExceedBudgetWithActivityAsync(
-            TravelPlannerDbContext db,
+            PlanDbContext db,
             Guid travelPlanId,
             decimal newActivityCost,
             Guid? excludeActivityId = null)
@@ -402,7 +398,7 @@ namespace TravelPlanner.PlanService
         }
 
         private static async Task<bool> WouldExceedBudgetWithExpenseAsync(
-            TravelPlannerDbContext db,
+            PlanDbContext db,
             Guid travelPlanId,
             decimal newExpenseAmount,
             Guid? excludeExpenseId = null)
@@ -838,13 +834,13 @@ namespace TravelPlanner.PlanService
             return true;
         }
 
-        private TravelPlannerDbContext CreateDbContext()
+        private PlanDbContext CreateDbContext()
         {
-            var options = new DbContextOptionsBuilder<TravelPlannerDbContext>()
+            var options = new DbContextOptionsBuilder<PlanDbContext>()
                 .UseSqlServer(_connectionString)
                 .Options;
 
-            return new TravelPlannerDbContext(options);
+            return new PlanDbContext(options);
         }
 
         private static TravelPlanData MapToPlanData(TravelPlan plan)

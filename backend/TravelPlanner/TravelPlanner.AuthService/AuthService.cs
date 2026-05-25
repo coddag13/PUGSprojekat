@@ -106,13 +106,13 @@ namespace TravelPlanner.AuthService
             return ServiceResponse<UserData>.Ok(MapToUserData(user));
         }
 
-        private TravelPlannerDbContext CreateDbContext()
+        private AuthDbContext CreateDbContext()
         {
-            var options = new DbContextOptionsBuilder<TravelPlannerDbContext>()
+            var options = new DbContextOptionsBuilder<AuthDbContext>()
                 .UseSqlServer(_connectionString)
                 .Options;
 
-            return new TravelPlannerDbContext(options);
+            return new AuthDbContext(options);
         }
 
         private static string NormalizeEmail(string? email)

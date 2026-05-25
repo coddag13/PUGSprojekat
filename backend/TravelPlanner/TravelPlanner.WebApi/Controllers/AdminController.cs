@@ -14,19 +14,28 @@ namespace TravelPlanner.WebApi.Controllers
     [Route("api/admin")]
     public class AdminController : ControllerBase
     {
-        private readonly TravelPlannerDbContext _db;
+        private readonly AuthDbContext _authDb;
+        private readonly PlanDbContext _planDb;
+        private readonly SharingDbContext _sharingDb;
 
-        public AdminController(TravelPlannerDbContext db)
+        public AdminController(AuthDbContext authDb, PlanDbContext planDb, SharingDbContext sharingDb)
         {
-            _db = db;
+            _authDb = authDb;
+            _planDb = planDb;
+            _sharingDb = sharingDb;
         }
 
         [HttpGet("users")]
         public async Task<ActionResult<IEnumerable<AdminUserResponseDto>>> GetUsers()
         {
-            var users = await _db.Users
+            var planCounts = await _planDb.TravelPlans
                 .AsNoTracking()
-                .Include(u => u.TravelPlans)
+                .GroupBy(tp => tp.OwnerId)
+                .Select(group => new { OwnerId = group.Key, Count = group.Count() })
+                .ToDictionaryAsync(item => item.OwnerId, item => item.Count);
+
+            var users = await _authDb.Users
+                .AsNoTracking()
                 .OrderBy(u => u.FirstName)
                 .ThenBy(u => u.LastName)
                 .Select(u => new AdminUserResponseDto
@@ -36,9 +45,14 @@ namespace TravelPlanner.WebApi.Controllers
                     LastName = u.LastName,
                     Email = u.Email,
                     Role = u.Role.ToString(),
-                    TravelPlansCount = u.TravelPlans.Count
+                    TravelPlansCount = 0
                 })
                 .ToListAsync();
+
+            foreach (var user in users)
+            {
+                user.TravelPlansCount = planCounts.TryGetValue(user.Id, out var count) ? count : 0;
+            }
 
             return Ok(users);
         }
@@ -53,19 +67,19 @@ namespace TravelPlanner.WebApi.Controllers
             if (currentUserId == id && parsedRole != UserRole.Admin)
                 return BadRequest("Admin cannot remove their own admin role.");
 
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _authDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (user is null)
                 return NotFound();
 
             if (user.Role == UserRole.Admin && parsedRole != UserRole.Admin)
             {
-                var adminCount = await _db.Users.CountAsync(u => u.Role == UserRole.Admin);
+                var adminCount = await _authDb.Users.CountAsync(u => u.Role == UserRole.Admin);
                 if (adminCount <= 1)
                     return BadRequest("At least one admin account must remain in the system.");
             }
 
             user.Role = parsedRole;
-            await _db.SaveChangesAsync();
+            await _authDb.SaveChangesAsync();
 
             return NoContent();
         }
@@ -77,19 +91,38 @@ namespace TravelPlanner.WebApi.Controllers
             if (currentUserId == id)
                 return BadRequest("Admin cannot delete their own account.");
 
-            var user = await _db.Users.FirstOrDefaultAsync(u => u.Id == id);
+            var user = await _authDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (user is null)
                 return NotFound();
 
             if (user.Role == UserRole.Admin)
             {
-                var adminCount = await _db.Users.CountAsync(u => u.Role == UserRole.Admin);
+                var adminCount = await _authDb.Users.CountAsync(u => u.Role == UserRole.Admin);
                 if (adminCount <= 1)
                     return BadRequest("At least one admin account must remain in the system.");
             }
 
-            _db.Users.Remove(user);
-            await _db.SaveChangesAsync();
+            var planIds = await _planDb.TravelPlans
+                .Where(tp => tp.OwnerId == id)
+                .Select(tp => tp.Id)
+                .ToListAsync();
+
+            if (planIds.Count > 0)
+            {
+                var shareTokens = await _sharingDb.ShareTokens
+                    .Where(st => planIds.Contains(st.TravelPlanId))
+                    .ToListAsync();
+
+                _sharingDb.ShareTokens.RemoveRange(shareTokens);
+                await _sharingDb.SaveChangesAsync();
+
+                var plans = await _planDb.TravelPlans.Where(tp => tp.OwnerId == id).ToListAsync();
+                _planDb.TravelPlans.RemoveRange(plans);
+                await _planDb.SaveChangesAsync();
+            }
+
+            _authDb.Users.Remove(user);
+            await _authDb.SaveChangesAsync();
 
             return NoContent();
         }
@@ -97,12 +130,21 @@ namespace TravelPlanner.WebApi.Controllers
         [HttpGet("travel-plans")]
         public async Task<ActionResult<IEnumerable<AdminTravelPlanResponseDto>>> GetTravelPlans()
         {
-            var plans = await _db.TravelPlans
+            var users = await _authDb.Users
                 .AsNoTracking()
-                .Include(tp => tp.Owner)
+                .ToDictionaryAsync(u => u.Id);
+
+            var plans = await _planDb.TravelPlans
+                .AsNoTracking()
                 .OrderBy(tp => tp.StartDate)
                 .ThenBy(tp => tp.Title)
-                .Select(tp => new AdminTravelPlanResponseDto
+                .ToListAsync();
+
+            return Ok(plans.Select(tp =>
+            {
+                users.TryGetValue(tp.OwnerId, out var owner);
+
+                return new AdminTravelPlanResponseDto
                 {
                     Id = tp.Id,
                     Title = tp.Title,
@@ -110,23 +152,25 @@ namespace TravelPlanner.WebApi.Controllers
                     StartDate = tp.StartDate,
                     EndDate = tp.EndDate,
                     PlannedBudget = tp.PlannedBudget,
-                    OwnerEmail = tp.Owner.Email,
-                    OwnerName = $"{tp.Owner.FirstName} {tp.Owner.LastName}"
-                })
-                .ToListAsync();
-
-            return Ok(plans);
+                    OwnerEmail = owner?.Email ?? string.Empty,
+                    OwnerName = owner is null ? "Nepoznat korisnik" : $"{owner.FirstName} {owner.LastName}"
+                };
+            }));
         }
 
         [HttpDelete("travel-plans/{id:guid}")]
         public async Task<IActionResult> DeleteTravelPlan(Guid id)
         {
-            var plan = await _db.TravelPlans.FirstOrDefaultAsync(tp => tp.Id == id);
+            var plan = await _planDb.TravelPlans.FirstOrDefaultAsync(tp => tp.Id == id);
             if (plan is null)
                 return NotFound();
 
-            _db.TravelPlans.Remove(plan);
-            await _db.SaveChangesAsync();
+            var shareTokens = await _sharingDb.ShareTokens.Where(st => st.TravelPlanId == id).ToListAsync();
+            _sharingDb.ShareTokens.RemoveRange(shareTokens);
+            await _sharingDb.SaveChangesAsync();
+
+            _planDb.TravelPlans.Remove(plan);
+            await _planDb.SaveChangesAsync();
 
             return NoContent();
         }
