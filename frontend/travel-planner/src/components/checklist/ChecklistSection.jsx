@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createChecklistItemPayload, createEmptyChecklistForm } from '../../models'
 import {
   createChecklistItem,
   getChecklistItems,
@@ -13,9 +14,7 @@ function ChecklistSection({ travelPlanId }) {
   const [saving, setSaving] = useState(false)
   const [updatingItemId, setUpdatingItemId] = useState(null)
   const [error, setError] = useState('')
-  const [form, setForm] = useState({
-    text: '',
-  })
+  const [form, setForm] = useState(createEmptyChecklistForm)
 
   const loadItems = async () => {
     setLoading(true)
@@ -70,13 +69,9 @@ function ChecklistSection({ travelPlanId }) {
     setSaving(true)
 
     try {
-      await createChecklistItem(travelPlanId, {
-        text: form.text.trim(),
-      })
+      await createChecklistItem(travelPlanId, createChecklistItemPayload(form))
 
-      setForm({
-        text: '',
-      })
+      setForm(createEmptyChecklistForm())
 
       await loadItems()
     } catch (err) {

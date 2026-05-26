@@ -3,6 +3,7 @@ import { useParams } from 'react-router-dom'
 import ActivityList from '../components/activities/ActivityList'
 import ChecklistForm from '../components/checklist/ChecklistForm'
 import ChecklistList from '../components/checklist/ChecklistList'
+import { createChecklistItemPayload, createEmptyChecklistForm } from '../models'
 import PlanOverviewSection from '../components/travel-plan-details/PlanOverviewSection'
 import SharedDestinationsSection from '../components/shared-plan/SharedDestinationsSection'
 import SharedExpensesSection from '../components/shared-plan/SharedExpensesSection'
@@ -25,7 +26,7 @@ function SharedPlanPage() {
   const [updatingActivityId, setUpdatingActivityId] = useState(null)
   const [updatingChecklistId, setUpdatingChecklistId] = useState(null)
   const [savingChecklist, setSavingChecklist] = useState(false)
-  const [checklistForm, setChecklistForm] = useState({ text: '' })
+  const [checklistForm, setChecklistForm] = useState(createEmptyChecklistForm)
 
   const loadSharedPlan = async () => {
     setLoading(true)
@@ -81,8 +82,8 @@ function SharedPlanPage() {
     setSavingChecklist(true)
 
     try {
-      await createSharedChecklistItem(token, { text: checklistForm.text.trim() })
-      setChecklistForm({ text: '' })
+      await createSharedChecklistItem(token, createChecklistItemPayload(checklistForm))
+      setChecklistForm(createEmptyChecklistForm())
       setSuccess('Checklist stavka je dodana.')
       await loadSharedPlan()
     } catch (err) {

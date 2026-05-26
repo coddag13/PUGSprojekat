@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
+  createDestinationFormModel,
+  createDestinationPayload,
+  createEmptyDestinationForm,
+} from '../../models'
+import {
   createDestination,
   deleteDestination,
   getDestinations,
@@ -9,21 +14,13 @@ import DestinationForm from './DestinationForm'
 import DestinationList from './DestinationList'
 
 function DestinationsSection({ travelPlanId, plan }) {
-  const emptyForm = {
-    name: '',
-    location: '',
-    arrivalDate: '',
-    departureDate: '',
-    description: '',
-  }
-
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deletingDestinationId, setDeletingDestinationId] = useState(null)
   const [editingDestinationId, setEditingDestinationId] = useState(null)
   const [error, setError] = useState('')
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState(createEmptyDestinationForm)
 
   const loadDestinations = async () => {
     setLoading(true)
@@ -49,7 +46,7 @@ function DestinationsSection({ travelPlanId, plan }) {
   }
 
   const resetForm = () => {
-    setForm(emptyForm)
+    setForm(createEmptyDestinationForm())
     setEditingDestinationId(null)
   }
 
@@ -119,13 +116,7 @@ function DestinationsSection({ travelPlanId, plan }) {
     setSaving(true)
 
     try {
-      const payload = {
-        name: form.name.trim(),
-        location: form.location.trim(),
-        arrivalDate: `${form.arrivalDate}T00:00:00`,
-        departureDate: `${form.departureDate}T00:00:00`,
-        description: form.description.trim(),
-      }
+      const payload = createDestinationPayload(form)
 
       if (editingDestinationId) {
         await updateDestination(travelPlanId, editingDestinationId, payload)
@@ -145,13 +136,7 @@ function DestinationsSection({ travelPlanId, plan }) {
   const handleEdit = (destination) => {
     setError('')
     setEditingDestinationId(destination.id)
-    setForm({
-      name: destination.name,
-      location: destination.location,
-      arrivalDate: destination.arrivalDate.slice(0, 10),
-      departureDate: destination.departureDate.slice(0, 10),
-      description: destination.description ?? '',
-    })
+    setForm(createDestinationFormModel(destination))
   }
 
   const handleDelete = async (destination) => {

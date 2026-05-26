@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { createEmptyTravelPlanForm, createTravelPlanPayload } from '../models'
 import { createTravelPlan, getTravelPlans } from '../services/travelPlanService'
 import TravelPlansHeader from '../components/travel-plans/TravelPlansHeader'
 import TravelPlanForm from '../components/travel-plans/TravelPlanForm'
@@ -11,14 +12,7 @@ function TravelPlansPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({
-    title: '',
-    description: '',
-    startDate: '',
-    endDate: '',
-    plannedBudget: '',
-    notes: '',
-  })
+  const [form, setForm] = useState(createEmptyTravelPlanForm)
 
   const loadPlans = async () => {
     setLoading(true)
@@ -84,23 +78,9 @@ function TravelPlansPage() {
     setSaving(true)
 
     try {
-      await createTravelPlan({
-        title: form.title.trim(),
-        description: form.description.trim(),
-        startDate: `${form.startDate}T00:00:00`,
-        endDate: `${form.endDate}T00:00:00`,
-        plannedBudget: Number(form.plannedBudget),
-        notes: form.notes.trim(),
-      })
+      await createTravelPlan(createTravelPlanPayload(form))
 
-      setForm({
-        title: '',
-        description: '',
-        startDate: '',
-        endDate: '',
-        plannedBudget: '',
-        notes: '',
-      })
+      setForm(createEmptyTravelPlanForm())
 
       await loadPlans()
     } catch (err) {

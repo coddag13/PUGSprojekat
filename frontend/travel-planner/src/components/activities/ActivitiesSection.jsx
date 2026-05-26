@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
+  createActivityFormModel,
+  createActivityPayload,
+  createEmptyActivityForm,
+} from '../../models'
+import {
   createActivity,
   deleteActivity,
   getActivities,
@@ -10,17 +15,6 @@ import ActivityForm from './ActivityForm'
 import ActivityList from './ActivityList'
 
 function ActivitiesSection({ travelPlanId, plan }) {
-  const emptyForm = {
-    destinationId: '',
-    name: '',
-    date: '',
-    time: '',
-    location: '',
-    description: '',
-    estimatedCost: '',
-    status: '0',
-  }
-
   const [activities, setActivities] = useState([])
   const [destinations, setDestinations] = useState([])
   const [loading, setLoading] = useState(true)
@@ -29,7 +23,7 @@ function ActivitiesSection({ travelPlanId, plan }) {
   const [updatingActivityId, setUpdatingActivityId] = useState(null)
   const [deletingActivityId, setDeletingActivityId] = useState(null)
   const [editingActivityId, setEditingActivityId] = useState(null)
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState(createEmptyActivityForm)
 
   const selectedDestination = destinations.find(
     (destination) => destination.id === form.destinationId,
@@ -64,7 +58,7 @@ function ActivitiesSection({ travelPlanId, plan }) {
   }
 
   const resetForm = () => {
-    setForm(emptyForm)
+    setForm(createEmptyActivityForm())
     setEditingActivityId(null)
   }
 
@@ -120,17 +114,6 @@ function ActivitiesSection({ travelPlanId, plan }) {
     return ''
   }
 
-  const buildPayload = () => ({
-    destinationId: form.destinationId || null,
-    name: form.name.trim(),
-    date: `${form.date}T00:00:00`,
-    time: `${form.time}:00`,
-    location: form.location.trim(),
-    description: form.description.trim(),
-    estimatedCost: Number(form.estimatedCost),
-    status: Number(form.status),
-  })
-
   const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
@@ -144,7 +127,7 @@ function ActivitiesSection({ travelPlanId, plan }) {
     setSaving(true)
 
     try {
-      const payload = buildPayload()
+      const payload = createActivityPayload(form)
 
       if (editingActivityId) {
         await updateActivity(travelPlanId, editingActivityId, payload)
@@ -164,16 +147,7 @@ function ActivitiesSection({ travelPlanId, plan }) {
   const handleEdit = (activity) => {
     setError('')
     setEditingActivityId(activity.id)
-    setForm({
-      destinationId: activity.destinationId ?? '',
-      name: activity.name,
-      date: activity.date.slice(0, 10),
-      time: activity.time.slice(0, 5),
-      location: activity.location,
-      description: activity.description ?? '',
-      estimatedCost: String(activity.estimatedCost),
-      status: String(activity.status),
-    })
+    setForm(createActivityFormModel(activity))
   }
 
   const handleDelete = async (activity) => {

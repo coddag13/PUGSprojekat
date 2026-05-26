@@ -1,17 +1,13 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { createEmptyRegisterForm } from '../models'
 
 function RegisterPage() {
   const navigate = useNavigate()
   const { register } = useAuth()
 
-  const [form, setForm] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-  })
+  const [form, setForm] = useState(createEmptyRegisterForm)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 

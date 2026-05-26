@@ -1,21 +1,25 @@
 import { httpClient } from '../api/httpClient'
+import { normalizeDestination, normalizeDestinations } from '../models'
 
 export async function getDestinations(travelPlanId) {
-  return httpClient(`/travel-plans/${travelPlanId}/destinations`)
+  const data = await httpClient(`/travel-plans/${travelPlanId}/destinations`)
+  return normalizeDestinations(data)
 }
 
 export async function createDestination(travelPlanId, payload) {
-  return httpClient(`/travel-plans/${travelPlanId}/destinations`, {
+  const data = await httpClient(`/travel-plans/${travelPlanId}/destinations`, {
     method: 'POST',
     body: payload,
   })
+  return normalizeDestination(data)
 }
 
 export async function updateDestination(travelPlanId, destinationId, payload) {
-  return httpClient(`/travel-plans/${travelPlanId}/destinations/${destinationId}`, {
+  const data = await httpClient(`/travel-plans/${travelPlanId}/destinations/${destinationId}`, {
     method: 'PUT',
     body: payload,
   })
+  return normalizeDestination(data)
 }
 
 export async function deleteDestination(travelPlanId, destinationId) {

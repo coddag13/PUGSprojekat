@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from 'react'
+import { createSessionModel, normalizeStoredSession } from '../models'
 import { loginUser, registerUser } from '../services/authService'
 
 const AuthContext = createContext(null)
@@ -19,7 +20,12 @@ export function AuthProvider({ children }) {
     }
 
     if (savedUser) {
-      setUser(JSON.parse(savedUser))
+      const session = normalizeStoredSession({
+        token: savedToken,
+        user: JSON.parse(savedUser),
+      })
+
+      setUser(session?.user ?? null)
     }
   }, [])
 
@@ -32,32 +38,14 @@ export function AuthProvider({ children }) {
 
   const register = async (payload) => {
     const response = await registerUser(payload)
-    const session = {
-      token: response.token,
-      user: {
-        email: response.email,
-        firstName: response.firstName,
-        lastName: response.lastName,
-        role: response.role,
-      },
-    }
-
+    const session = createSessionModel(response)
     persistSession(session)
     return session
   }
 
   const login = async (payload) => {
     const response = await loginUser(payload)
-    const session = {
-      token: response.token,
-      user: {
-        email: response.email,
-        firstName: response.firstName,
-        lastName: response.lastName,
-        role: response.role,
-      },
-    }
-
+    const session = createSessionModel(response)
     persistSession(session)
     return session
   }

@@ -1,5 +1,10 @@
 import { useEffect, useState } from 'react'
 import {
+  createEmptyExpenseForm,
+  createExpenseFormModel,
+  createExpensePayload,
+} from '../../models'
+import {
   createExpense,
   deleteExpense,
   getExpenses,
@@ -10,14 +15,6 @@ import ExpenseForm from './ExpenseForm'
 import ExpenseList from './ExpenseList'
 
 function ExpensesSection({ travelPlanId, plan }) {
-  const emptyForm = {
-    name: '',
-    category: '0',
-    amount: '',
-    date: '',
-    description: '',
-  }
-
   const [expenses, setExpenses] = useState([])
   const [activities, setActivities] = useState([])
   const [loading, setLoading] = useState(true)
@@ -25,7 +22,7 @@ function ExpensesSection({ travelPlanId, plan }) {
   const [deletingExpenseId, setDeletingExpenseId] = useState(null)
   const [editingExpenseId, setEditingExpenseId] = useState(null)
   const [error, setError] = useState('')
-  const [form, setForm] = useState(emptyForm)
+  const [form, setForm] = useState(createEmptyExpenseForm)
 
   const loadData = async () => {
     setLoading(true)
@@ -56,7 +53,7 @@ function ExpensesSection({ travelPlanId, plan }) {
   }
 
   const resetForm = () => {
-    setForm(emptyForm)
+    setForm(createEmptyExpenseForm())
     setEditingExpenseId(null)
   }
 
@@ -121,13 +118,7 @@ function ExpensesSection({ travelPlanId, plan }) {
     setSaving(true)
 
     try {
-      const payload = {
-        name: form.name.trim(),
-        category: Number(form.category),
-        amount: Number(form.amount),
-        date: `${form.date}T00:00:00`,
-        description: form.description.trim(),
-      }
+      const payload = createExpensePayload(form)
 
       if (editingExpenseId) {
         await updateExpense(travelPlanId, editingExpenseId, payload)
@@ -147,13 +138,7 @@ function ExpensesSection({ travelPlanId, plan }) {
   const handleEdit = (expense) => {
     setError('')
     setEditingExpenseId(expense.id)
-    setForm({
-      name: expense.name,
-      category: String(expense.category),
-      amount: String(expense.amount),
-      date: expense.date.slice(0, 10),
-      description: expense.description ?? '',
-    })
+    setForm(createExpenseFormModel(expense))
   }
 
   const handleDelete = async (expense) => {

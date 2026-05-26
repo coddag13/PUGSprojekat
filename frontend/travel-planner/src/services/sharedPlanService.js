@@ -1,7 +1,9 @@
 import { httpClient } from '../api/httpClient'
+import { normalizeChecklistItem, normalizeSharedPlan } from '../models'
 
 export async function getSharedPlan(token) {
-  return httpClient(`/shared-plans/${token}`)
+  const data = await httpClient(`/shared-plans/${token}`)
+  return normalizeSharedPlan(data)
 }
 
 export async function updateSharedActivityStatus(token, activityId, payload) {
@@ -12,15 +14,17 @@ export async function updateSharedActivityStatus(token, activityId, payload) {
 }
 
 export async function createSharedChecklistItem(token, payload) {
-  return httpClient(`/shared-plans/${token}/checklist-items`, {
+  const data = await httpClient(`/shared-plans/${token}/checklist-items`, {
     method: 'POST',
     body: payload,
   })
+  return normalizeChecklistItem(data)
 }
 
 export async function updateSharedChecklistItem(token, itemId, payload) {
-  return httpClient(`/shared-plans/${token}/checklist-items/${itemId}`, {
+  const data = await httpClient(`/shared-plans/${token}/checklist-items/${itemId}`, {
     method: 'PUT',
     body: payload,
   })
+  return normalizeChecklistItem(data)
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createEmptyShareTokenForm, createShareTokenPayload } from '../../models'
 import {
   createShareToken,
   deleteShareToken,
@@ -14,10 +15,7 @@ function SharingSection({ travelPlanId }) {
   const [deletingTokenId, setDeletingTokenId] = useState(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [form, setForm] = useState({
-    accessType: '0',
-    expiresAt: '',
-  })
+  const [form, setForm] = useState(createEmptyShareTokenForm)
 
   const loadTokens = async () => {
     setLoading(true)
@@ -71,15 +69,9 @@ function SharingSection({ travelPlanId }) {
     setSaving(true)
 
     try {
-      await createShareToken(travelPlanId, {
-        accessType: Number(form.accessType),
-        expiresAt: new Date(form.expiresAt).toISOString(),
-      })
+      await createShareToken(travelPlanId, createShareTokenPayload(form))
 
-      setForm({
-        accessType: '0',
-        expiresAt: '',
-      })
+      setForm(createEmptyShareTokenForm())
 
       setSuccess('Pristup za dijeljenje je uspješno kreiran.')
       await loadTokens()

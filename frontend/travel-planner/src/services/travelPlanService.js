@@ -1,11 +1,14 @@
 import { httpClient } from '../api/httpClient'
+import { normalizeTravelPlan, normalizeTravelPlans } from '../models'
 
 export async function getTravelPlans() {
-  return httpClient('/travel-plans')
+  const data = await httpClient('/travel-plans')
+  return normalizeTravelPlans(data)
 }
 
 export async function getTravelPlanById(id) {
-  return httpClient(`/travel-plans/${id}`)
+  const data = await httpClient(`/travel-plans/${id}`)
+  return normalizeTravelPlan(data)
 }
 
 export async function createTravelPlan(payload) {
