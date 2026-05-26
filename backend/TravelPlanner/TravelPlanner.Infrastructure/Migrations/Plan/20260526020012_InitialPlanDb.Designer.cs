@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TravelPlanner.Infrastructure.Persistence;
 
 #nullable disable
 
-namespace TravelPlanner.Infrastructure.Migrations
+namespace TravelPlanner.Infrastructure.Migrations.Plan
 {
-    [DbContext(typeof(TravelPlannerDbContext))]
-    partial class TravelPlannerDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(PlanDbContext))]
+    [Migration("20260526020012_InitialPlanDb")]
+    partial class InitialPlanDb
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -159,32 +162,6 @@ namespace TravelPlanner.Infrastructure.Migrations
                     b.ToTable("PlanActivities");
                 });
 
-            modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.ShareToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("AccessType")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("TravelPlanId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TravelPlanId");
-
-                    b.ToTable("ShareTokens");
-                });
-
             modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.TravelPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -218,42 +195,7 @@ namespace TravelPlanner.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("OwnerId");
-
                     b.ToTable("TravelPlans");
-                });
-
-            modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.User", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Role")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Email")
-                        .IsUnique();
-
-                    b.ToTable("Users");
                 });
 
             modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.ChecklistItem", b =>
@@ -307,28 +249,6 @@ namespace TravelPlanner.Infrastructure.Migrations
                     b.Navigation("TravelPlan");
                 });
 
-            modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.ShareToken", b =>
-                {
-                    b.HasOne("TravelPlanner.Infrastructure.Entities.TravelPlan", "TravelPlan")
-                        .WithMany("ShareTokens")
-                        .HasForeignKey("TravelPlanId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("TravelPlan");
-                });
-
-            modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.TravelPlan", b =>
-                {
-                    b.HasOne("TravelPlanner.Infrastructure.Entities.User", "Owner")
-                        .WithMany("TravelPlans")
-                        .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Owner");
-                });
-
             modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.TravelPlan", b =>
                 {
                     b.Navigation("Activities");
@@ -338,13 +258,6 @@ namespace TravelPlanner.Infrastructure.Migrations
                     b.Navigation("Destinations");
 
                     b.Navigation("Expenses");
-
-                    b.Navigation("ShareTokens");
-                });
-
-            modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.User", b =>
-                {
-                    b.Navigation("TravelPlans");
                 });
 #pragma warning restore 612, 618
         }

@@ -201,7 +201,7 @@ namespace TravelPlanner.WebApi
 
             try
             {
-                database.EnsureCreated();
+                database.Migrate();
             }
             catch (SqlException)
             {

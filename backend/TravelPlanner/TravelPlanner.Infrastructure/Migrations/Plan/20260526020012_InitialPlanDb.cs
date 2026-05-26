@@ -3,30 +3,14 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace TravelPlanner.Infrastructure.Migrations
+namespace TravelPlanner.Infrastructure.Migrations.Plan
 {
     /// <inheritdoc />
-    public partial class InitialCreateFixed : Migration
+    public partial class InitialPlanDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.CreateTable(
-                name: "Users",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    FirstName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    LastName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Role = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Users", x => x.Id);
-                });
-
             migrationBuilder.CreateTable(
                 name: "TravelPlans",
                 columns: table => new
@@ -43,12 +27,6 @@ namespace TravelPlanner.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_TravelPlans", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_TravelPlans_Users_OwnerId",
-                        column: x => x.OwnerId,
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -118,27 +96,6 @@ namespace TravelPlanner.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "ShareTokens",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TravelPlanId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Token = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    AccessType = table.Column<int>(type: "int", nullable: false),
-                    ExpiresAt = table.Column<DateTime>(type: "datetime2", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_ShareTokens", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ShareTokens_TravelPlans_TravelPlanId",
-                        column: x => x.TravelPlanId,
-                        principalTable: "TravelPlans",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "PlanActivities",
                 columns: table => new
                 {
@@ -193,22 +150,6 @@ namespace TravelPlanner.Infrastructure.Migrations
                 name: "IX_PlanActivities_TravelPlanId",
                 table: "PlanActivities",
                 column: "TravelPlanId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_ShareTokens_TravelPlanId",
-                table: "ShareTokens",
-                column: "TravelPlanId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TravelPlans_OwnerId",
-                table: "TravelPlans",
-                column: "OwnerId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Users_Email",
-                table: "Users",
-                column: "Email",
-                unique: true);
         }
 
         /// <inheritdoc />
@@ -224,16 +165,10 @@ namespace TravelPlanner.Infrastructure.Migrations
                 name: "PlanActivities");
 
             migrationBuilder.DropTable(
-                name: "ShareTokens");
-
-            migrationBuilder.DropTable(
                 name: "Destinations");
 
             migrationBuilder.DropTable(
                 name: "TravelPlans");
-
-            migrationBuilder.DropTable(
-                name: "Users");
         }
     }
 }
