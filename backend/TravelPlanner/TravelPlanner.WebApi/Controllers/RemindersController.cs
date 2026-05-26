@@ -93,7 +93,7 @@ namespace TravelPlanner.WebApi.Controllers
             var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
 
             if (plan is null)
-                return NotFound("Travel plan not found.");
+                return NotFound("Plan putovanja nije pronađen.");
 
             if (plan.OwnerId != ownerId && !IsAdmin())
                 return Forbid();

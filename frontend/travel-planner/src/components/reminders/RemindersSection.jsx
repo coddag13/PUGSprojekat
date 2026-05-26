@@ -104,6 +104,10 @@ function RemindersSection({ travelPlanId }) {
   }
 
   const handleToggle = async (reminder) => {
+    if (!reminder) {
+      return
+    }
+
     setError('')
     setUpdatingReminderId(reminder.id)
 

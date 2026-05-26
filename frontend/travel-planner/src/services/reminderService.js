@@ -19,7 +19,7 @@ export async function updateReminder(travelPlanId, reminderId, payload) {
     method: 'PUT',
     body: payload,
   })
-  return normalizeReminder(data)
+  return data ? normalizeReminder(data) : null
 }
 
 export async function deleteReminder(travelPlanId, reminderId) {

@@ -867,14 +867,14 @@ namespace TravelPlanner.PlanService
 
             title = title?.Trim() ?? string.Empty;
             if (string.IsNullOrWhiteSpace(title))
-                return ServiceResponse<ReminderData>.Fail("Reminder title is required.");
+                return ServiceResponse<ReminderData>.Fail("Naslov podsjetnika je obavezan.");
 
             var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
             if (plan is null)
-                return ServiceResponse<ReminderData>.Fail("Travel plan not found.");
+                return ServiceResponse<ReminderData>.Fail("Plan putovanja nije pronađen.");
 
             if (remindAt < plan.StartDate || remindAt > plan.EndDate.AddDays(1).AddTicks(-1))
-                return ServiceResponse<ReminderData>.Fail("Reminder must be within the travel plan period.");
+                return ServiceResponse<ReminderData>.Fail("Podsjetnik mora biti unutar perioda plana putovanja.");
 
             var reminder = new Reminder
             {
