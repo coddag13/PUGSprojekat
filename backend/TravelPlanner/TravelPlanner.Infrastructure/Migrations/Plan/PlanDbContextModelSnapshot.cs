@@ -159,6 +159,32 @@ namespace TravelPlanner.Infrastructure.Migrations.Plan
                     b.ToTable("PlanActivities");
                 });
 
+            modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.Reminder", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("RemindAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("TravelPlanId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TravelPlanId");
+
+                    b.ToTable("Reminders");
+                });
+
             modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.TravelPlan", b =>
                 {
                     b.Property<Guid>("Id")
@@ -246,6 +272,17 @@ namespace TravelPlanner.Infrastructure.Migrations.Plan
                     b.Navigation("TravelPlan");
                 });
 
+            modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.Reminder", b =>
+                {
+                    b.HasOne("TravelPlanner.Infrastructure.Entities.TravelPlan", "TravelPlan")
+                        .WithMany("Reminders")
+                        .HasForeignKey("TravelPlanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("TravelPlan");
+                });
+
             modelBuilder.Entity("TravelPlanner.Infrastructure.Entities.TravelPlan", b =>
                 {
                     b.Navigation("Activities");
@@ -255,6 +292,8 @@ namespace TravelPlanner.Infrastructure.Migrations.Plan
                     b.Navigation("Destinations");
 
                     b.Navigation("Expenses");
+
+                    b.Navigation("Reminders");
                 });
 #pragma warning restore 612, 618
         }

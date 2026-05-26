@@ -10,6 +10,7 @@ using TravelPlanner.WebApi.DTOs.ChecklistItems;
 using TravelPlanner.WebApi.DTOs.Destinations;
 using TravelPlanner.WebApi.DTOs.Expenses;
 using TravelPlanner.WebApi.DTOs.Shared;
+using TravelPlanner.WebApi.DTOs.Reminders;
 using TravelPlanner.WebApi.DTOs.TravelPlans;
 
 namespace TravelPlanner.WebApi.Controllers
@@ -124,6 +125,7 @@ namespace TravelPlanner.WebApi.Controllers
             var activities = await PlanService.GetActivitiesAsync(shareToken.TravelPlanId);
             var expenses = await PlanService.GetExpensesAsync(shareToken.TravelPlanId);
             var checklistItems = await PlanService.GetChecklistItemsAsync(shareToken.TravelPlanId);
+            var reminders = await PlanService.GetRemindersAsync(shareToken.TravelPlanId);
 
             return new SharedPlanResponseDto
             {
@@ -132,7 +134,8 @@ namespace TravelPlanner.WebApi.Controllers
                 Destinations = destinations.Select(MapToDestinationResponse).ToList(),
                 Activities = activities.Select(MapToActivityResponse).ToList(),
                 Expenses = expenses.Select(MapToExpenseResponse).ToList(),
-                ChecklistItems = checklistItems.Select(MapToChecklistResponse).ToList()
+                ChecklistItems = checklistItems.Select(MapToChecklistResponse).ToList(),
+                Reminders = reminders.Select(MapToReminderResponse).ToList()
             };
         }
 
@@ -204,6 +207,18 @@ namespace TravelPlanner.WebApi.Controllers
                 TravelPlanId = item.TravelPlanId,
                 Text = item.Text,
                 IsCompleted = item.IsCompleted
+            };
+        }
+
+        private static ReminderResponseDto MapToReminderResponse(ReminderData reminder)
+        {
+            return new ReminderResponseDto
+            {
+                Id = reminder.Id,
+                TravelPlanId = reminder.TravelPlanId,
+                Title = reminder.Title,
+                RemindAt = reminder.RemindAt,
+                IsCompleted = reminder.IsCompleted
             };
         }
     }

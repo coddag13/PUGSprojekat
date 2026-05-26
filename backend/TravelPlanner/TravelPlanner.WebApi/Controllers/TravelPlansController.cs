@@ -6,6 +6,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using TravelPlanner.Common.Interfaces;
 using TravelPlanner.WebApi.DTOs.TravelPlans;
+using TravelPlanner.WebApi.Reports;
 
 namespace TravelPlanner.WebApi.Controllers
 {
@@ -44,6 +45,30 @@ namespace TravelPlanner.WebApi.Controllers
                 return Forbid();
 
             return Ok(MapToResponse(plan));
+        }
+
+        [HttpGet("{id:guid}/reports/summary")]
+        public async Task<IActionResult> DownloadSummaryReport(Guid id)
+        {
+            var ownerId = GetOwnerId();
+            var plan = await PlanService.GetPlanByIdAsync(id);
+
+            if (plan is null)
+                return NotFound();
+
+            if (plan.OwnerId != ownerId && !IsAdmin())
+                return Forbid();
+
+            var destinations = await PlanService.GetDestinationsAsync(id);
+            var activities = await PlanService.GetActivitiesAsync(id);
+            var expenses = await PlanService.GetExpensesAsync(id);
+            var checklistItems = await PlanService.GetChecklistItemsAsync(id);
+            var reminders = await PlanService.GetRemindersAsync(id);
+
+            var pdfBytes = TravelPlanPdfBuilder.Build(plan, destinations, activities, expenses, checklistItems, reminders);
+            var fileName = $"{SanitizeFileName(plan.Title)}-izvjestaj.pdf";
+
+            return File(pdfBytes, "application/pdf", fileName);
         }
 
         [HttpPost]
@@ -149,6 +174,12 @@ namespace TravelPlanner.WebApi.Controllers
         private bool IsAdmin()
         {
             return User.IsInRole("Admin");
+        }
+
+        private static string SanitizeFileName(string value)
+        {
+            var invalidChars = Path.GetInvalidFileNameChars();
+            return string.Concat(value.Select(character => invalidChars.Contains(character) ? '-' : character));
         }
     }
 }

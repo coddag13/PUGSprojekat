@@ -837,6 +837,104 @@ namespace TravelPlanner.PlanService
             return true;
         }
 
+        public async Task<List<ReminderData>> GetRemindersAsync(Guid travelPlanId)
+        {
+            await using var db = CreateDbContext();
+
+            var reminders = await db.Reminders
+                .AsNoTracking()
+                .Where(r => r.TravelPlanId == travelPlanId)
+                .OrderBy(r => r.RemindAt)
+                .ToListAsync();
+
+            return reminders.Select(MapToReminderData).ToList();
+        }
+
+        public async Task<ReminderData?> GetReminderByIdAsync(Guid travelPlanId, Guid id)
+        {
+            await using var db = CreateDbContext();
+
+            var reminder = await db.Reminders
+                .AsNoTracking()
+                .FirstOrDefaultAsync(r => r.Id == id && r.TravelPlanId == travelPlanId);
+
+            return reminder is null ? null : MapToReminderData(reminder);
+        }
+
+        public async Task<ServiceResponse<ReminderData>> CreateReminderAsync(Guid travelPlanId, string title, DateTime remindAt)
+        {
+            await using var db = CreateDbContext();
+
+            title = title?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(title))
+                return ServiceResponse<ReminderData>.Fail("Reminder title is required.");
+
+            var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
+            if (plan is null)
+                return ServiceResponse<ReminderData>.Fail("Travel plan not found.");
+
+            if (remindAt < plan.StartDate || remindAt > plan.EndDate.AddDays(1).AddTicks(-1))
+                return ServiceResponse<ReminderData>.Fail("Reminder must be within the travel plan period.");
+
+            var reminder = new Reminder
+            {
+                Id = Guid.NewGuid(),
+                TravelPlanId = travelPlanId,
+                Title = title,
+                RemindAt = remindAt,
+                IsCompleted = false
+            };
+
+            db.Reminders.Add(reminder);
+            await db.SaveChangesAsync();
+
+            return ServiceResponse<ReminderData>.Ok(MapToReminderData(reminder));
+        }
+
+        public async Task<bool> UpdateReminderAsync(Guid travelPlanId, Guid id, string title, DateTime remindAt, bool isCompleted)
+        {
+            await using var db = CreateDbContext();
+
+            var reminder = await db.Reminders
+                .FirstOrDefaultAsync(r => r.Id == id && r.TravelPlanId == travelPlanId);
+
+            if (reminder is null)
+                return false;
+
+            title = title?.Trim() ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(title))
+                return false;
+
+            var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
+            if (plan is null)
+                return false;
+
+            if (remindAt < plan.StartDate || remindAt > plan.EndDate.AddDays(1).AddTicks(-1))
+                return false;
+
+            reminder.Title = title;
+            reminder.RemindAt = remindAt;
+            reminder.IsCompleted = isCompleted;
+
+            await db.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<bool> DeleteReminderAsync(Guid travelPlanId, Guid id)
+        {
+            await using var db = CreateDbContext();
+
+            var reminder = await db.Reminders
+                .FirstOrDefaultAsync(r => r.Id == id && r.TravelPlanId == travelPlanId);
+
+            if (reminder is null)
+                return false;
+
+            db.Reminders.Remove(reminder);
+            await db.SaveChangesAsync();
+            return true;
+        }
+
         private PlanDbContext CreateDbContext()
         {
             var options = new DbContextOptionsBuilder<PlanDbContext>()
@@ -914,6 +1012,18 @@ namespace TravelPlanner.PlanService
                 TravelPlanId = item.TravelPlanId,
                 Text = item.Text,
                 IsCompleted = item.IsCompleted
+            };
+        }
+
+        private static ReminderData MapToReminderData(Reminder reminder)
+        {
+            return new ReminderData
+            {
+                Id = reminder.Id,
+                TravelPlanId = reminder.TravelPlanId,
+                Title = reminder.Title,
+                RemindAt = reminder.RemindAt,
+                IsCompleted = reminder.IsCompleted
             };
         }
     }

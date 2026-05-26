@@ -4,11 +4,12 @@ import ActivityList from '../components/activities/ActivityList'
 import ChecklistForm from '../components/checklist/ChecklistForm'
 import ChecklistList from '../components/checklist/ChecklistList'
 import { createChecklistItemPayload, createEmptyChecklistForm } from '../models'
-import PlanOverviewSection from '../components/travel-plan-details/PlanOverviewSection'
 import SharedDestinationsSection from '../components/shared-plan/SharedDestinationsSection'
 import SharedExpensesSection from '../components/shared-plan/SharedExpensesSection'
 import SharedPlanHeader from '../components/shared-plan/SharedPlanHeader'
 import SharedPlanTabs from '../components/shared-plan/SharedPlanTabs'
+import SharedRemindersSection from '../components/shared-plan/SharedRemindersSection'
+import PlanOverviewSection from '../components/travel-plan-details/PlanOverviewSection'
 import {
   createSharedChecklistItem,
   getSharedPlan,
@@ -157,6 +158,8 @@ function SharedPlanPage() {
             />
           </div>
         )
+      case 'reminders':
+        return <SharedRemindersSection reminders={shared.reminders} />
       default:
         return <PlanOverviewSection plan={shared.plan} allowActions={false} />
     }

@@ -4,12 +4,14 @@ import ActivitiesSection from '../components/activities/ActivitiesSection'
 import ChecklistSection from '../components/checklist/ChecklistSection'
 import DestinationsSection from '../components/destinations/DestinationsSection'
 import ExpensesSection from '../components/expenses/ExpensesSection'
+import RemindersSection from '../components/reminders/RemindersSection'
 import SharingSection from '../components/sharing/SharingSection'
 import PlanDetailsHeader from '../components/travel-plan-details/PlanDetailsHeader'
 import PlanOverviewSection from '../components/travel-plan-details/PlanOverviewSection'
 import PlanTabs from '../components/travel-plan-details/PlanTabs'
 import {
   deleteTravelPlan,
+  downloadTravelPlanReport,
   getTravelPlanById,
   updateTravelPlan,
 } from '../services/travelPlanService'
@@ -24,6 +26,7 @@ function TravelPlanDetailsPage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [savingPlan, setSavingPlan] = useState(false)
   const [deletingPlan, setDeletingPlan] = useState(false)
+  const [downloadingReport, setDownloadingReport] = useState(false)
   const [planActionError, setPlanActionError] = useState('')
 
   const loadPlan = async () => {
@@ -86,6 +89,31 @@ function TravelPlanDetailsPage() {
     }
   }
 
+  const handleDownloadReport = async () => {
+    if (!plan) {
+      return
+    }
+
+    setPlanActionError('')
+    setDownloadingReport(true)
+
+    try {
+      const blob = await downloadTravelPlanReport(plan.id)
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `${plan.title}-izvjestaj.pdf`
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+    } catch (err) {
+      setPlanActionError(err.message)
+    } finally {
+      setDownloadingReport(false)
+    }
+  }
+
   if (loading) {
     return (
       <main className="travel-shell min-h-screen px-4 py-8">
@@ -137,6 +165,8 @@ function TravelPlanDetailsPage() {
         return <ExpensesSection travelPlanId={plan.id} plan={plan} />
       case 'checklist':
         return <ChecklistSection travelPlanId={plan.id} />
+      case 'reminders':
+        return <RemindersSection travelPlanId={plan.id} />
       case 'sharing':
         return <SharingSection travelPlanId={plan.id} />
       default:
@@ -156,7 +186,11 @@ function TravelPlanDetailsPage() {
   return (
     <main className="travel-shell min-h-screen px-4 py-8">
       <div className="relative mx-auto max-w-7xl space-y-6">
-        <PlanDetailsHeader plan={plan} />
+        <PlanDetailsHeader
+          plan={plan}
+          onDownloadReport={handleDownloadReport}
+          downloadingReport={downloadingReport}
+        />
         <PlanTabs activeTab={activeTab} onChange={setActiveTab} />
         {renderActiveSection()}
       </div>

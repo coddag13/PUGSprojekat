@@ -4,6 +4,7 @@ const tabs = [
   { key: 'activities', label: 'Aktivnosti' },
   { key: 'expenses', label: 'Troškovi' },
   { key: 'checklist', label: 'Lista stvari' },
+  { key: 'reminders', label: 'Podsjetnici' },
 ]
 
 function SharedPlanTabs({ activeTab, onChange }) {

@@ -14,6 +14,7 @@ namespace TravelPlanner.Infrastructure.Persistence
         public DbSet<PlanActivity> PlanActivities => Set<PlanActivity>();
         public DbSet<Expense> Expenses => Set<Expense>();
         public DbSet<ChecklistItem> ChecklistItems => Set<ChecklistItem>();
+        public DbSet<Reminder> Reminders => Set<Reminder>();
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -47,6 +48,12 @@ namespace TravelPlanner.Infrastructure.Persistence
                 .HasMany(tp => tp.ChecklistItems)
                 .WithOne(c => c.TravelPlan)
                 .HasForeignKey(c => c.TravelPlanId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<TravelPlan>()
+                .HasMany(tp => tp.Reminders)
+                .WithOne(r => r.TravelPlan)
+                .HasForeignKey(r => r.TravelPlanId)
                 .OnDelete(DeleteBehavior.Cascade);
 
             modelBuilder.Entity<PlanActivity>()

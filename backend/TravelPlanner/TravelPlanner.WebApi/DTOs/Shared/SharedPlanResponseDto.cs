@@ -3,6 +3,7 @@ using TravelPlanner.WebApi.DTOs.Activities;
 using TravelPlanner.WebApi.DTOs.ChecklistItems;
 using TravelPlanner.WebApi.DTOs.Destinations;
 using TravelPlanner.WebApi.DTOs.Expenses;
+using TravelPlanner.WebApi.DTOs.Reminders;
 using TravelPlanner.WebApi.DTOs.TravelPlans;
 
 namespace TravelPlanner.WebApi.DTOs.Shared
@@ -15,5 +16,6 @@ namespace TravelPlanner.WebApi.DTOs.Shared
         public List<ActivityResponseDto> Activities { get; set; } = [];
         public List<ExpenseResponseDto> Expenses { get; set; } = [];
         public List<ChecklistItemResponseDto> ChecklistItems { get; set; } = [];
+        public List<ReminderResponseDto> Reminders { get; set; } = [];
     }
 }

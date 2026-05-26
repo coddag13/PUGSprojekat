@@ -1,17 +1,30 @@
 import { Link } from 'react-router-dom'
 
-function PlanDetailsHeader({ plan }) {
+function PlanDetailsHeader({ plan, onDownloadReport, downloadingReport = false }) {
   return (
     <section className="dark-signal-panel relative overflow-hidden rounded-[2.5rem] px-6 py-8 text-white shadow-[0_30px_80px_rgba(15,23,42,0.28)]">
       <div className="pointer-events-none absolute left-[10%] top-[28%] h-px w-40 bg-gradient-to-r from-transparent via-amber-300/45 to-transparent" />
       <div className="pointer-events-none absolute right-[12%] top-[22%] h-px w-28 bg-gradient-to-r from-transparent via-sky-300/45 to-transparent" />
 
-      <Link
-        to="/travel-plans"
-        className="relative inline-flex rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-      >
-        Nazad na planove
-      </Link>
+      <div className="relative flex flex-wrap items-center justify-between gap-3">
+        <Link
+          to="/travel-plans"
+          className="inline-flex rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+        >
+          Nazad na planove
+        </Link>
+
+        {onDownloadReport ? (
+          <button
+            type="button"
+            onClick={onDownloadReport}
+            disabled={downloadingReport}
+            className="rounded-full bg-[linear-gradient(90deg,#facc15_0%,#f59e0b_55%,#7dd3fc_100%)] px-5 py-2.5 text-sm font-bold text-slate-950 shadow-[0_18px_30px_rgba(250,204,21,0.18)] transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {downloadingReport ? 'Priprema PDF...' : 'Preuzmi PDF izvještaj'}
+          </button>
+        ) : null}
+      </div>
 
       <div className="relative mt-7 flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
         <div className="max-w-3xl">

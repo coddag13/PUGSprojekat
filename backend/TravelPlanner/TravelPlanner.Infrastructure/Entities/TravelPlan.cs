@@ -34,6 +34,8 @@ namespace TravelPlanner.Infrastructure.Entities
 
         public ICollection<ChecklistItem> ChecklistItems { get; set; } = new List<ChecklistItem>();
 
+        public ICollection<Reminder> Reminders { get; set; } = new List<Reminder>();
+
         public ICollection<ShareToken> ShareTokens { get; set; } = new List<ShareToken>();
     }
 }
