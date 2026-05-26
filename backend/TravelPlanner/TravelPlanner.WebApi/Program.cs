@@ -1,10 +1,5 @@
 using Microsoft.ServiceFabric.Services.Runtime;
-using Microsoft.EntityFrameworkCore;
-using TravelPlanner.Infrastructure.Persistence;
-using System;
 using System.Diagnostics;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace TravelPlanner.WebApi
 {

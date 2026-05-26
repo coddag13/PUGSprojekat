@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-using Microsoft.ServiceFabric.Services.Remoting;
+﻿using Microsoft.ServiceFabric.Services.Remoting;
 using TravelPlanner.Common.Models;
 
 namespace TravelPlanner.Common.Interfaces

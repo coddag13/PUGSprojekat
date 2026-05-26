@@ -1,4 +1,3 @@
-using BCrypt.Net;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.ServiceFabric.Services.Communication.Runtime;

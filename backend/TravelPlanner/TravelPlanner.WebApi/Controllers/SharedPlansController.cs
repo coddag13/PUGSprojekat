@@ -9,8 +9,8 @@ using TravelPlanner.WebApi.DTOs.Activities;
 using TravelPlanner.WebApi.DTOs.ChecklistItems;
 using TravelPlanner.WebApi.DTOs.Destinations;
 using TravelPlanner.WebApi.DTOs.Expenses;
-using TravelPlanner.WebApi.DTOs.Shared;
 using TravelPlanner.WebApi.DTOs.Reminders;
+using TravelPlanner.WebApi.DTOs.Shared;
 using TravelPlanner.WebApi.DTOs.TravelPlans;
 
 namespace TravelPlanner.WebApi.Controllers
