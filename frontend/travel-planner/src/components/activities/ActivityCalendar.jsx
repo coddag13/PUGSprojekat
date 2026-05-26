@@ -52,10 +52,15 @@ function ActivityCalendar({ activities }) {
   }
 
   return (
-    <section className="rounded-[2rem] bg-white p-6 shadow-lg">
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Kalendar aktivnosti</h2>
-        <div className="rounded-2xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">
+    <section className="glass-panel rounded-[2.2rem] p-6">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Kalendar</p>
+          <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+            Aktivnosti po mjesecu
+          </h2>
+        </div>
+        <div className="rounded-[1.25rem] bg-slate-950 px-4 py-2.5 text-sm font-semibold capitalize text-white">
           {firstDay.toLocaleString('sr-Latn-RS', { month: 'long', year: 'numeric' })}
         </div>
       </div>
@@ -75,10 +80,10 @@ function ActivityCalendar({ activities }) {
           cell ? (
             <div
               key={cell.dateKey}
-              className="min-h-36 rounded-2xl border border-slate-200 bg-[linear-gradient(180deg,#fffdf7_0%,#f8fbff_100%)] p-3"
+              className="min-h-36 rounded-[1.5rem] border border-slate-200 bg-[linear-gradient(180deg,rgba(255,255,255,0.9)_0%,rgba(248,251,255,0.95)_100%)] p-3 shadow-sm"
             >
               <div className="mb-3 flex items-center justify-between">
-                <span className="text-sm font-bold text-slate-900">{cell.day}</span>
+                <span className="text-sm font-black text-slate-950">{cell.day}</span>
                 {cell.activities.length > 0 ? (
                   <span className="rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-900">
                     {cell.activities.length}
@@ -90,16 +95,16 @@ function ActivityCalendar({ activities }) {
                 {cell.activities.map((activity) => (
                   <div
                     key={activity.id}
-                    className="rounded-xl bg-slate-950 px-2 py-2 text-xs text-white"
+                    className="rounded-[1rem] bg-slate-950 px-2 py-2 text-xs text-white shadow-sm"
                   >
-                    <p className="font-semibold">{activity.time.slice(0, 5)}</p>
+                    <p className="font-semibold text-amber-300">{activity.time.slice(0, 5)}</p>
                     <p className="mt-1 truncate">{activity.name}</p>
                   </div>
                 ))}
               </div>
             </div>
           ) : (
-            <div key={`empty-${index}`} className="min-h-36 rounded-2xl bg-transparent" />
+            <div key={`empty-${index}`} className="min-h-36 rounded-[1.5rem] bg-transparent" />
           ),
         )}
       </div>

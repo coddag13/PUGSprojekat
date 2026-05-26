@@ -180,28 +180,36 @@ function DestinationsSection({ travelPlanId, plan }) {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[430px_1fr]">
-      <DestinationForm
-        form={form}
-        plan={plan}
-        error={error}
-        saving={saving}
-        submitLabel={editingDestinationId ? 'Sačuvaj izmjene' : 'Dodaj destinaciju'}
-        title={editingDestinationId ? 'Izmjena destinacije' : 'Nova destinacija'}
-        onChange={handleChange}
-        onSubmit={handleSubmit}
-        onCancel={resetForm}
-        showCancel={Boolean(editingDestinationId)}
-      />
+    <div className="space-y-6">
+      {error ? (
+        <div className="rounded-[1.3rem] border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          {error}
+        </div>
+      ) : null}
 
-      <DestinationList
-        destinations={destinations}
-        loading={loading}
-        onRefresh={loadDestinations}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-        deletingDestinationId={deletingDestinationId}
-      />
+      <div className="grid gap-6 lg:grid-cols-[430px_1fr]">
+        <DestinationForm
+          form={form}
+          plan={plan}
+          error=""
+          saving={saving}
+          submitLabel={editingDestinationId ? 'Sačuvaj izmjene' : 'Dodaj destinaciju'}
+          title={editingDestinationId ? 'Izmjena destinacije' : 'Nova destinacija'}
+          onChange={handleChange}
+          onSubmit={handleSubmit}
+          onCancel={resetForm}
+          showCancel={Boolean(editingDestinationId)}
+        />
+
+        <DestinationList
+          destinations={destinations}
+          loading={loading}
+          onRefresh={loadDestinations}
+          onEdit={handleEdit}
+          onDelete={handleDelete}
+          deletingDestinationId={deletingDestinationId}
+        />
+      </div>
     </div>
   )
 }

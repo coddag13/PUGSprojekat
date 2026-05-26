@@ -8,7 +8,7 @@ const tabs = [
 
 function SharedPlanTabs({ activeTab, onChange }) {
   return (
-    <section className="rounded-[2rem] border border-white/70 bg-white/85 p-4 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-sm">
+    <section className="glass-panel rounded-[2.2rem] p-4">
       <div className="flex flex-wrap gap-3">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.key
@@ -19,10 +19,10 @@ function SharedPlanTabs({ activeTab, onChange }) {
               type="button"
               onClick={() => onChange(tab.key)}
               className={[
-                'rounded-2xl px-4 py-3 text-sm font-bold transition',
+                'rounded-[1.25rem] px-4 py-3 text-sm font-bold transition',
                 isActive
-                  ? 'bg-slate-950 text-white shadow-lg'
-                  : 'border border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+                  ? 'bg-[linear-gradient(90deg,#facc15_0%,#f59e0b_55%,#0f172a_100%)] text-white shadow-[0_16px_32px_rgba(15,23,42,0.14)]'
+                  : 'border border-slate-300 bg-white/80 text-slate-700 hover:bg-white',
               ].join(' ')}
             >
               {tab.label}

@@ -10,7 +10,7 @@ import {
 } from '../services/adminService'
 
 function AdminPage() {
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
   const [users, setUsers] = useState([])
   const [plans, setPlans] = useState([])
   const [loading, setLoading] = useState(true)
@@ -102,31 +102,29 @@ function AdminPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
-      <div className="mx-auto max-w-7xl space-y-6">
-        <header className="relative overflow-hidden rounded-[2.25rem] bg-slate-950 px-6 py-7 text-white shadow-[0_30px_80px_rgba(15,23,42,0.28)]">
-          <div className="pointer-events-none absolute right-[-3rem] top-[-3rem] h-40 w-40 rounded-full bg-amber-300/20 blur-3xl" />
-          <div className="pointer-events-none absolute bottom-[-4rem] left-[-2rem] h-44 w-44 rounded-full bg-sky-300/15 blur-3xl" />
-
+    <main className="travel-shell min-h-screen px-4 py-8">
+      <div className="relative mx-auto max-w-7xl space-y-6">
+        <header className="dark-signal-panel relative overflow-hidden rounded-[2.5rem] px-6 py-8 text-white md:px-8 md:py-10">
           <div className="relative flex flex-wrap items-start justify-between gap-4">
-            <div>
+            <div className="max-w-3xl">
               <Link
-                className="inline-flex rounded-2xl border border-white/20 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+                className="inline-flex rounded-[1.25rem] border border-white/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-white/10"
                 to="/travel-plans"
               >
                 Nazad na planove
               </Link>
-              <p className="mt-6 text-sm uppercase tracking-[0.3em] text-amber-300">Administracija</p>
-              <h1 className="mt-3 text-4xl font-black tracking-tight md:text-5xl">
-                Pregled sistema
+              <p className="mt-6 text-sm uppercase tracking-[0.32em] text-amber-300">Administracija</p>
+              <h1 className="travel-heading mt-4 text-4xl font-black md:text-6xl">
+                Pregled korisnika i planova na jednom mjestu
               </h1>
-              <p className="mt-3 max-w-2xl text-slate-300">
-                Pregledaj korisničke naloge i planove putovanja na jednom mjestu.
+              <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-300">
+                Upravljaj korisničkim nalozima, pregledaj planove u sistemu i reaguj brzo kada je
+                potrebno.
               </p>
             </div>
 
             <button
-              className="rounded-2xl border border-white/15 px-5 py-3 font-semibold text-white transition hover:bg-white/10"
+              className="rounded-[1.25rem] border border-white/15 bg-white/5 px-5 py-3 font-semibold text-white transition hover:bg-white/10"
               type="button"
               onClick={logout}
             >
@@ -136,40 +134,45 @@ function AdminPage() {
         </header>
 
         <section className="grid gap-4 md:grid-cols-3">
-          <div className="rounded-[2rem] border border-white/70 bg-white/85 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Korisnici</p>
-            <p className="mt-3 text-3xl font-black text-slate-900">{users.length}</p>
+          <div className="glass-panel rounded-[2rem] p-5">
+            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Korisnici</p>
+            <p className="mt-3 text-3xl font-black text-slate-950">{users.length}</p>
           </div>
-          <div className="rounded-[2rem] border border-white/70 bg-white/85 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Planovi</p>
-            <p className="mt-3 text-3xl font-black text-slate-900">{plans.length}</p>
+          <div className="glass-panel rounded-[2rem] p-5">
+            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Planovi</p>
+            <p className="mt-3 text-3xl font-black text-slate-950">{plans.length}</p>
           </div>
-          <div className="rounded-[2rem] border border-white/70 bg-white/85 p-5 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
-            <p className="text-sm uppercase tracking-[0.2em] text-slate-500">Administratori</p>
-            <p className="mt-3 text-3xl font-black text-slate-900">
+          <div className="glass-panel rounded-[2rem] p-5">
+            <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Administratori</p>
+            <p className="mt-3 text-3xl font-black text-slate-950">
               {users.filter((item) => item.role === 'Admin').length}
             </p>
           </div>
         </section>
 
         {error ? (
-          <div className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="rounded-[1.3rem] border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
           </div>
         ) : null}
 
         {success ? (
-          <div className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="rounded-[1.3rem] border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {success}
           </div>
         ) : null}
 
         <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <section className="rounded-[2rem] border border-white/70 bg-white/85 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+          <section className="glass-panel rounded-[2.2rem] p-6">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-2xl font-black text-slate-900">Korisnički nalozi</h2>
+              <div>
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Nalozi</p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                  Korisnici
+                </h2>
+              </div>
               <button
-                className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="rounded-[1.25rem] border border-slate-300 bg-white/75 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-white"
                 type="button"
                 onClick={loadAdminData}
               >
@@ -178,19 +181,16 @@ function AdminPage() {
             </div>
 
             {loading ? (
-              <div className="rounded-3xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+              <div className="rounded-[1.8rem] border border-dashed border-slate-300 bg-white/50 p-10 text-center text-slate-500">
                 Učitavanje korisnika...
               </div>
             ) : (
               <div className="grid gap-4">
                 {users.map((item) => (
-                  <article
-                    key={item.id}
-                    className="rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,#fffaf0_0%,#f8fbff_100%)] p-5 shadow-sm"
-                  >
+                  <article key={item.id} className="route-card rounded-[2rem] p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h3 className="text-lg font-bold text-slate-900">
+                        <h3 className="text-lg font-black text-slate-950">
                           {item.firstName} {item.lastName}
                         </h3>
                         <p className="mt-2 text-slate-700">{item.email}</p>
@@ -205,7 +205,7 @@ function AdminPage() {
                       </div>
 
                       <button
-                        className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-[1.25rem] bg-rose-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
                         type="button"
                         onClick={() => handleDeleteUser(item)}
                         disabled={deletingUserId === item.id}
@@ -220,7 +220,7 @@ function AdminPage() {
                           Promijeni ulogu
                         </span>
                         <select
-                          className="w-full rounded-2xl border border-slate-300 px-4 py-3 outline-none transition focus:border-amber-500"
+                          className="w-full rounded-[1.25rem] border border-slate-300 bg-white/90 px-4 py-3 outline-none transition focus:border-amber-500"
                           value={item.role}
                           onChange={(event) => handleRoleChange(item, event.target.value)}
                           disabled={updatingUserId === item.id}
@@ -236,11 +236,16 @@ function AdminPage() {
             )}
           </section>
 
-          <section className="rounded-[2rem] border border-white/70 bg-white/85 p-6 shadow-[0_18px_50px_rgba(15,23,42,0.08)]">
+          <section className="glass-panel rounded-[2.2rem] p-6">
             <div className="mb-5 flex items-center justify-between">
-              <h2 className="text-2xl font-black text-slate-900">Planovi u sistemu</h2>
+              <div>
+                <p className="text-sm uppercase tracking-[0.24em] text-slate-500">Sistem</p>
+                <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">
+                  Planovi u sistemu
+                </h2>
+              </div>
               <button
-                className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                className="rounded-[1.25rem] border border-slate-300 bg-white/75 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-white"
                 type="button"
                 onClick={loadAdminData}
               >
@@ -249,19 +254,16 @@ function AdminPage() {
             </div>
 
             {loading ? (
-              <div className="rounded-3xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+              <div className="rounded-[1.8rem] border border-dashed border-slate-300 bg-white/50 p-10 text-center text-slate-500">
                 Učitavanje planova...
               </div>
             ) : (
               <div className="grid gap-4">
                 {plans.map((plan) => (
-                  <article
-                    key={plan.id}
-                    className="rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,#fffaf0_0%,#f8fbff_100%)] p-5 shadow-sm"
-                  >
+                  <article key={plan.id} className="route-card rounded-[2rem] p-5">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h3 className="text-lg font-bold text-slate-900">{plan.title}</h3>
+                        <h3 className="text-lg font-black text-slate-950">{plan.title}</h3>
                         <p className="mt-2 text-slate-700">{plan.description}</p>
                         <div className="mt-3 flex flex-wrap gap-3 text-sm">
                           <span className="rounded-full bg-sky-100 px-3 py-1 text-sky-900">
@@ -278,14 +280,14 @@ function AdminPage() {
 
                       <div className="flex flex-wrap gap-3">
                         <Link
-                          className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                          className="rounded-[1.25rem] border border-slate-300 bg-white/75 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-white"
                           to={`/travel-plans/${plan.id}`}
                         >
                           Otvori plan
                         </Link>
 
                         <button
-                          className="rounded-2xl bg-rose-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
+                          className="rounded-[1.25rem] bg-rose-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-60"
                           type="button"
                           onClick={() => handleDeletePlan(plan)}
                           disabled={deletingPlanId === plan.id}

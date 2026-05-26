@@ -8,31 +8,41 @@ function TravelPlanCard({ plan }) {
   }
 
   return (
-    <article className="rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,#fffaf0_0%,#f8fbff_100%)] p-5 shadow-sm">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h3 className="text-xl font-bold text-slate-900">{plan.title}</h3>
-          <p className="mt-2 text-slate-700">{plan.description}</p>
+    <article className="route-card rounded-[2rem] p-5">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="max-w-2xl">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-full bg-slate-950 px-3 py-1 text-xs font-semibold uppercase tracking-[0.3em] text-amber-300">
+              Aktivni plan
+            </span>
+            <span className="rounded-full bg-white/75 px-3 py-1 text-xs font-semibold text-slate-600">
+              {plan.startDate.slice(0, 10)} - {plan.endDate.slice(0, 10)}
+            </span>
+          </div>
+
+          <h3 className="mt-4 text-2xl font-black tracking-tight text-slate-950">{plan.title}</h3>
+          <p className="mt-3 text-slate-700">{plan.description}</p>
         </div>
-        <div className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white">
-          {plan.plannedBudget} EUR
+
+        <div className="rounded-[1.5rem] bg-slate-950 px-5 py-4 text-right text-white shadow-lg">
+          <p className="text-xs uppercase tracking-[0.32em] text-slate-300">Budžet</p>
+          <p className="mt-2 text-2xl font-black text-amber-300">{plan.plannedBudget} EUR</p>
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-600">
-        <span className="rounded-full bg-amber-100 px-3 py-1">{plan.startDate.slice(0, 10)}</span>
-        <span className="rounded-full bg-sky-100 px-3 py-1">{plan.endDate.slice(0, 10)}</span>
-      </div>
+      <div className="mt-5 grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
+        {plan.notes ? (
+          <p className="rounded-[1.5rem] border border-white/50 bg-white/70 px-4 py-3 text-sm leading-6 text-slate-600">
+            {plan.notes}
+          </p>
+        ) : (
+          <p className="rounded-[1.5rem] border border-dashed border-slate-300 bg-white/50 px-4 py-3 text-sm text-slate-500">
+            Nema dodatnih napomena za ovaj plan.
+          </p>
+        )}
 
-      {plan.notes ? (
-        <p className="mt-4 rounded-2xl bg-white/80 px-4 py-3 text-sm text-slate-600">
-          {plan.notes}
-        </p>
-      ) : null}
-
-      <div className="mt-5 flex justify-end">
         <button
-          className="rounded-2xl bg-amber-300 px-4 py-2 text-sm font-bold text-slate-900 transition hover:bg-amber-200"
+          className="rounded-[1.35rem] bg-[linear-gradient(90deg,#facc15_0%,#f59e0b_55%,#0f172a_100%)] px-5 py-3 text-sm font-bold text-white shadow-[0_18px_36px_rgba(15,23,42,0.14)] transition hover:brightness-105"
           type="button"
           onClick={handleOpen}
         >

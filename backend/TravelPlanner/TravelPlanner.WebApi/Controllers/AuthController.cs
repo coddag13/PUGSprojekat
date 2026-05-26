@@ -11,7 +11,6 @@ using TravelPlanner.WebApi.DTOs.Auth;
 namespace TravelPlanner.WebApi.Controllers
 {
     [ApiController]
-    [Route("api/auth")]
     public class AuthController : ControllerBase
     {
         private readonly IConfiguration _configuration;
@@ -24,7 +23,7 @@ namespace TravelPlanner.WebApi.Controllers
         private static IAuthService AuthService =>
             ServiceProxy.Create<IAuthService>(new Uri("fabric:/TravelPlanner/TravelPlanner.AuthService"));
 
-        [HttpPost("register")]
+        [HttpPost("api/users")]
         public async Task<ActionResult<AuthResponseDto>> Register(RegisterDto dto)
         {
             var result = await AuthService.RegisterAsync(dto.FirstName, dto.LastName, dto.Email, dto.Password);
@@ -33,7 +32,7 @@ namespace TravelPlanner.WebApi.Controllers
             return Ok(BuildAuthResponse(result.Data!));
         }
 
-        [HttpPost("login")]
+        [HttpPost("api/sessions")]
         public async Task<ActionResult<AuthResponseDto>> Login(LoginDto dto)
         {
             var result = await AuthService.LoginAsync(dto.Email, dto.Password);

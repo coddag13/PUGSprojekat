@@ -1,12 +1,12 @@
 function ChecklistItemCard({ item, onToggle, isUpdating, allowToggle = true }) {
   return (
-    <article className="rounded-3xl border border-slate-200 bg-[linear-gradient(135deg,#fffaf0_0%,#f8fbff_100%)] p-5 shadow-sm">
+    <article className="route-card rounded-[2rem] p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-start gap-4">
           {allowToggle ? (
             <button
               className={[
-                'mt-1 flex h-6 w-6 items-center justify-center rounded-full border transition',
+                'mt-1 flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold transition',
                 item.isCompleted
                   ? 'border-emerald-500 bg-emerald-500 text-white'
                   : 'border-slate-300 bg-white text-transparent',
@@ -20,7 +20,7 @@ function ChecklistItemCard({ item, onToggle, isUpdating, allowToggle = true }) {
           ) : (
             <span
               className={[
-                'mt-1 flex h-6 w-6 items-center justify-center rounded-full border',
+                'mt-1 flex h-7 w-7 items-center justify-center rounded-full border text-sm font-bold',
                 item.isCompleted
                   ? 'border-emerald-500 bg-emerald-500 text-white'
                   : 'border-slate-300 bg-white text-transparent',
@@ -33,8 +33,8 @@ function ChecklistItemCard({ item, onToggle, isUpdating, allowToggle = true }) {
           <div>
             <p
               className={[
-                'text-base font-medium',
-                item.isCompleted ? 'text-slate-400 line-through' : 'text-slate-900',
+                'text-base font-semibold',
+                item.isCompleted ? 'text-slate-400 line-through' : 'text-slate-950',
               ].join(' ')}
             >
               {item.text}
@@ -55,16 +55,16 @@ function ChecklistItemCard({ item, onToggle, isUpdating, allowToggle = true }) {
 
         {allowToggle ? (
           <button
-            className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-[1.25rem] border border-slate-300 bg-white/75 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
             type="button"
             onClick={() => onToggle(item)}
             disabled={isUpdating}
           >
             {isUpdating
-              ? 'Cuva se...'
+              ? 'Čuva se...'
               : item.isCompleted
-              ? 'Vrati na nezavrseno'
-              : 'Oznaci kao zavrseno'}
+              ? 'Vrati na nezavršeno'
+              : 'Označi kao završeno'}
           </button>
         ) : null}
       </div>

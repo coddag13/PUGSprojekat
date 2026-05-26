@@ -62,17 +62,6 @@ namespace TravelPlanner.WebApi.Controllers
             return NoContent();
         }
 
-        [AllowAnonymous]
-        [HttpGet("access/{token}")]
-        public async Task<IActionResult> GetByToken(Guid travelPlanId, string token)
-        {
-            var result = await SharingService.ValidateTokenForPlanAsync(travelPlanId, token);
-            if (!result.Success)
-                return Unauthorized(result.Error);
-
-            return Ok(MapToResponse(result.Data!));
-        }
-
         private async Task<IActionResult?> EnsurePlanOwnership(Guid travelPlanId)
         {
             var ownerId = GetOwnerId();

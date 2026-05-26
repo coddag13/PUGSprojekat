@@ -57,8 +57,8 @@ namespace TravelPlanner.WebApi.Controllers
             return Ok(users);
         }
 
-        [HttpPut("users/{id:guid}/role")]
-        public async Task<IActionResult> UpdateUserRole(Guid id, UpdateUserRoleDto dto)
+        [HttpPut("users/{id:guid}")]
+        public async Task<IActionResult> UpdateUser(Guid id, UpdateUserRoleDto dto)
         {
             if (!Enum.TryParse<UserRole>(dto.Role, true, out var parsedRole))
                 return BadRequest("Invalid role.");

@@ -111,8 +111,8 @@ function TravelPlansPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
-      <div className="mx-auto max-w-7xl">
+    <main className="travel-shell min-h-screen px-4 py-8">
+      <div className="relative mx-auto max-w-7xl">
         <TravelPlansHeader
           firstName={user?.firstName}
           isAdmin={user?.role === 'Admin'}

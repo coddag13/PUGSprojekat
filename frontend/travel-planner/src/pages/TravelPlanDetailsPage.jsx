@@ -45,26 +45,26 @@ function TravelPlanDetailsPage() {
   }, [id])
 
   const handleSavePlan = async (payload, validationError = '') => {
-  setPlanActionError('')
+    setPlanActionError('')
 
-  if (validationError) {
-    setPlanActionError(validationError)
-    return false
+    if (validationError) {
+      setPlanActionError(validationError)
+      return false
+    }
+
+    setSavingPlan(true)
+
+    try {
+      await updateTravelPlan(id, payload)
+      await loadPlan()
+      return true
+    } catch (err) {
+      setPlanActionError(err.message)
+      return false
+    } finally {
+      setSavingPlan(false)
+    }
   }
-
-  setSavingPlan(true)
-
-  try {
-    await updateTravelPlan(id, payload)
-    await loadPlan()
-    return true
-  } catch (err) {
-    setPlanActionError(err.message)
-    return false
-  } finally {
-    setSavingPlan(false)
-  }
-}
 
   const handleDeletePlan = async () => {
     const confirmed = window.confirm('Da li sigurno želiš obrisati ovaj plan putovanja?')
@@ -88,8 +88,8 @@ function TravelPlanDetailsPage() {
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
-        <div className="mx-auto max-w-7xl rounded-[2rem] bg-white p-10 text-center text-slate-500 shadow-lg">
+      <main className="travel-shell min-h-screen px-4 py-8">
+        <div className="glass-panel mx-auto max-w-7xl rounded-[2rem] p-10 text-center text-slate-500">
           Učitavanje detalja plana...
         </div>
       </main>
@@ -98,7 +98,7 @@ function TravelPlanDetailsPage() {
 
   if (error) {
     return (
-      <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
+      <main className="travel-shell min-h-screen px-4 py-8">
         <div className="mx-auto max-w-7xl rounded-[2rem] border border-rose-300 bg-rose-50 p-10 text-center text-rose-700 shadow-lg">
           {error}
         </div>
@@ -108,8 +108,8 @@ function TravelPlanDetailsPage() {
 
   if (!plan) {
     return (
-      <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
-        <div className="mx-auto max-w-7xl rounded-[2rem] bg-white p-10 text-center text-slate-500 shadow-lg">
+      <main className="travel-shell min-h-screen px-4 py-8">
+        <div className="glass-panel mx-auto max-w-7xl rounded-[2rem] p-10 text-center text-slate-500">
           Plan nije pronađen.
         </div>
       </main>
@@ -154,8 +154,8 @@ function TravelPlanDetailsPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <main className="travel-shell min-h-screen px-4 py-8">
+      <div className="relative mx-auto max-w-7xl space-y-6">
         <PlanDetailsHeader plan={plan} />
         <PlanTabs activeTab={activeTab} onChange={setActiveTab} />
         {renderActiveSection()}

@@ -107,7 +107,7 @@ function ChecklistSection({ travelPlanId }) {
   return (
     <div className="space-y-6">
       {error ? (
-        <div className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-[1.3rem] border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
         </div>
       ) : null}

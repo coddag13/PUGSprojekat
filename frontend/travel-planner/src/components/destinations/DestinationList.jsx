@@ -9,12 +9,15 @@ function DestinationList({
   deletingDestinationId,
 }) {
   return (
-    <section className="rounded-[2rem] bg-white p-6 shadow-lg">
-      <div className="mb-5 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-slate-900">Destinacije</h2>
+    <section className="glass-panel rounded-[2.2rem] p-6">
+      <div className="mb-5 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm uppercase tracking-[0.28em] text-slate-500">Mreža stanica</p>
+          <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-950">Destinacije</h2>
+        </div>
 
         <button
-          className="rounded-2xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+          className="rounded-[1.25rem] border border-slate-300 bg-white/75 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-white"
           type="button"
           onClick={onRefresh}
         >
@@ -23,11 +26,11 @@ function DestinationList({
       </div>
 
       {loading ? (
-        <div className="rounded-3xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+        <div className="rounded-[1.8rem] border border-dashed border-slate-300 bg-white/50 p-10 text-center text-slate-500">
           Učitavanje destinacija...
         </div>
       ) : destinations.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-slate-300 p-10 text-center text-slate-500">
+        <div className="rounded-[1.8rem] border border-dashed border-slate-300 bg-white/50 p-10 text-center text-slate-500">
           Još nema unesenih destinacija.
         </div>
       ) : (

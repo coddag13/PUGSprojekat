@@ -54,7 +54,7 @@ function SharedPlanPage() {
 
     try {
       await updateSharedActivityStatus(token, activity.id, { status: newStatus })
-      setSuccess('Status aktivnosti je azuriran.')
+      setSuccess('Status aktivnosti je ažuriran.')
       await loadSharedPlan()
     } catch (err) {
       setError(err.message)
@@ -114,7 +114,7 @@ function SharedPlanPage() {
   const renderActiveSection = () => {
     switch (activeTab) {
       case 'overview':
-        return <PlanOverviewSection plan={shared.plan} />
+        return <PlanOverviewSection plan={shared.plan} allowActions={false} />
       case 'destinations':
         return <SharedDestinationsSection destinations={shared.destinations} />
       case 'activities':
@@ -157,14 +157,14 @@ function SharedPlanPage() {
           </div>
         )
       default:
-        return <PlanOverviewSection plan={shared.plan} />
+        return <PlanOverviewSection plan={shared.plan} allowActions={false} />
     }
   }
 
   if (loading) {
     return (
-      <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
-        <div className="mx-auto max-w-7xl rounded-[2rem] bg-white p-10 text-center text-slate-500 shadow-lg">
+      <main className="travel-shell min-h-screen px-4 py-8">
+        <div className="glass-panel mx-auto max-w-7xl rounded-[2rem] p-10 text-center text-slate-500">
           Učitavanje dijeljenog plana...
         </div>
       </main>
@@ -173,7 +173,7 @@ function SharedPlanPage() {
 
   if (error && !shared) {
     return (
-      <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
+      <main className="travel-shell min-h-screen px-4 py-8">
         <div className="mx-auto max-w-7xl rounded-[2rem] border border-rose-300 bg-rose-50 p-10 text-center text-rose-700 shadow-lg">
           {error}
         </div>
@@ -182,19 +182,19 @@ function SharedPlanPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#fff8ee_0%,#eef6ff_100%)] px-4 py-8">
-      <div className="mx-auto max-w-7xl space-y-6">
+    <main className="travel-shell min-h-screen px-4 py-8">
+      <div className="relative mx-auto max-w-7xl space-y-6">
         <SharedPlanHeader plan={shared.plan} accessType={shared.accessType} />
         <SharedPlanTabs activeTab={activeTab} onChange={setActiveTab} />
 
         {error ? (
-          <div className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+          <div className="rounded-[1.3rem] border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
             {error}
           </div>
         ) : null}
 
         {success ? (
-          <div className="rounded-2xl border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          <div className="rounded-[1.3rem] border border-emerald-300 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
             {success}
           </div>
         ) : null}

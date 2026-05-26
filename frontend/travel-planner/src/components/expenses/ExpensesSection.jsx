@@ -188,35 +188,35 @@ function ExpensesSection({ travelPlanId, plan }) {
 
   return (
     <div className="space-y-6">
-      <div className="rounded-[2rem] bg-slate-950 p-5 text-white shadow-lg">
-        <p className="text-sm uppercase tracking-[0.2em] text-amber-300">Budžet</p>
+      <section className="dark-signal-panel rounded-[2.3rem] p-5 text-white shadow-lg">
+        <p className="text-sm uppercase tracking-[0.28em] text-amber-300">Budžetski pregled</p>
         <div className="mt-4 grid gap-4 md:grid-cols-4">
-          <div className="rounded-2xl bg-white/10 p-4">
+          <div className="route-kpi rounded-[1.6rem] bg-white/8 p-4 backdrop-blur-sm">
             <p className="text-sm text-slate-300">Planirani budžet</p>
-            <p className="mt-2 text-2xl font-bold">{plan.plannedBudget} EUR</p>
+            <p className="mt-2 text-2xl font-black">{plan.plannedBudget} EUR</p>
           </div>
-          <div className="rounded-2xl bg-white/10 p-4">
+          <div className="route-kpi rounded-[1.6rem] bg-white/8 p-4 backdrop-blur-sm">
             <p className="text-sm text-slate-300">Ukupni troškovi</p>
-            <p className="mt-2 text-2xl font-bold">{expensesTotal.toFixed(2)} EUR</p>
+            <p className="mt-2 text-2xl font-black">{expensesTotal.toFixed(2)} EUR</p>
           </div>
-          <div className="rounded-2xl bg-white/10 p-4">
+          <div className="route-kpi rounded-[1.6rem] bg-white/8 p-4 backdrop-blur-sm">
             <p className="text-sm text-slate-300">Procijenjene aktivnosti</p>
-            <p className="mt-2 text-2xl font-bold">{activitiesEstimatedTotal.toFixed(2)} EUR</p>
+            <p className="mt-2 text-2xl font-black">{activitiesEstimatedTotal.toFixed(2)} EUR</p>
           </div>
-          <div className="rounded-2xl bg-white/10 p-4">
+          <div className="route-kpi rounded-[1.6rem] bg-white/8 p-4 backdrop-blur-sm">
             <p className="text-sm text-slate-300">Preostali budžet</p>
-            <p className="mt-2 text-2xl font-bold">{remainingBudget.toFixed(2)} EUR</p>
+            <p className="mt-2 text-2xl font-black text-amber-300">{remainingBudget.toFixed(2)} EUR</p>
           </div>
         </div>
 
-        <div className="mt-4 rounded-2xl bg-white/10 p-4">
+        <div className="mt-4 rounded-[1.6rem] bg-white/8 p-4 backdrop-blur-sm">
           <p className="text-sm text-slate-300">Ukupno zauzeto</p>
-          <p className="mt-2 text-2xl font-bold">{committedAmount.toFixed(2)} EUR</p>
+          <p className="mt-2 text-2xl font-black">{committedAmount.toFixed(2)} EUR</p>
         </div>
-      </div>
+      </section>
 
       {error ? (
-        <div className="rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
+        <div className="rounded-[1.3rem] border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700">
           {error}
         </div>
       ) : null}

@@ -5,7 +5,7 @@ export async function getAdminUsers() {
 }
 
 export async function updateAdminUserRole(userId, payload) {
-  return httpClient(`/admin/users/${userId}/role`, {
+  return httpClient(`/admin/users/${userId}`, {
     method: 'PUT',
     body: payload,
   })

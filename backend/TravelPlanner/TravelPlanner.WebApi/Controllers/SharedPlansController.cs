@@ -16,7 +16,7 @@ namespace TravelPlanner.WebApi.Controllers
 {
     [AllowAnonymous]
     [ApiController]
-    [Route("api/shared/{token}")]
+    [Route("api/shared-plans/{token}")]
     public class SharedPlansController : ControllerBase
     {
         private static ISharingService SharingService =>
@@ -38,7 +38,7 @@ namespace TravelPlanner.WebApi.Controllers
             return Ok(shared);
         }
 
-        [HttpPut("activities/{id:guid}/status")]
+        [HttpPut("activities/{id:guid}")]
         public async Task<IActionResult> UpdateActivityStatus(string token, Guid id, UpdateSharedActivityStatusDto dto)
         {
             var tokenResult = await ValidateSharedEditAccessAsync(token);
