@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { createEmptyRegisterForm } from '../models'
+import { createFormValidationHandlers } from '../utils/formValidation'
 
 function RegisterPage() {
   const navigate = useNavigate()
   const { register } = useAuth()
+  const formValidation = createFormValidationHandlers()
 
   const [form, setForm] = useState(createEmptyRegisterForm)
   const [error, setError] = useState('')
@@ -92,7 +94,11 @@ function RegisterPage() {
               </div>
             </div>
 
-            <form className="mt-8 grid gap-5 md:grid-cols-2" onSubmit={handleSubmit}>
+            <form
+              className="mt-8 grid gap-5 md:grid-cols-2"
+              onSubmit={handleSubmit}
+              {...formValidation}
+            >
               <label className="block">
                 <span className="mb-2 block text-sm font-medium text-slate-700">Ime</span>
                 <input

@@ -41,7 +41,7 @@ namespace TravelPlanner.AuthService.Services.Auth
 
             var emailExists = await db.Users.AnyAsync(u => u.Email == email);
             if (emailExists)
-                return ServiceResponse<UserData>.Fail("Email is already in use.");
+                return ServiceResponse<UserData>.Fail("Email adresa je već zauzeta.");
 
             var user = new User
             {
@@ -75,7 +75,7 @@ namespace TravelPlanner.AuthService.Services.Auth
                 .FirstOrDefaultAsync(u => u.Email == email);
 
             if (user is null || !BCrypt.Net.BCrypt.Verify(password, user.PasswordHash))
-                return ServiceResponse<UserData>.Fail("Invalid email or password.");
+                return ServiceResponse<UserData>.Fail("Neispravna email adresa ili lozinka.");
 
             return ServiceResponse<UserData>.Ok(UserMapper.Map(user));
         }

@@ -1,12 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ServiceFabric.Services.Client;
 using Microsoft.ServiceFabric.Services.Remoting.Client;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using TravelPlanner.Common.Interfaces;
-using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.Expenses;
+using TravelPlanner.WebApi.Extensions;
+using TravelPlanner.WebApi.Mappings;
 
 namespace TravelPlanner.WebApi.Controllers
 {
@@ -28,7 +27,7 @@ namespace TravelPlanner.WebApi.Controllers
                 return ownershipResult;
 
             var items = await PlanService.GetExpensesAsync(travelPlanId);
-            return Ok(items.Select(MapToResponse));
+            return Ok(items.Select(expense => expense.ToExpenseResponse()));
         }
 
         [HttpGet("{id:guid}")]
@@ -42,14 +41,14 @@ namespace TravelPlanner.WebApi.Controllers
             if (expense is null)
                 return NotFound();
 
-            return Ok(MapToResponse(expense));
+            return Ok(expense.ToExpenseResponse());
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(Guid travelPlanId, CreateExpenseDto dto)
         {
             if (dto.Amount < 0)
-                return BadRequest("Amount cannot be negative.");
+                return BadRequest("Iznos ne može biti negativan.");
 
             var ownershipResult = await EnsurePlanOwnership(travelPlanId);
             if (ownershipResult is not null)
@@ -66,14 +65,17 @@ namespace TravelPlanner.WebApi.Controllers
             if (!result.Success)
                 return BadRequest(result.Error);
 
-            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = result.Data!.Id }, MapToResponse(result.Data));
+            return CreatedAtAction(
+                nameof(GetById),
+                new { travelPlanId, id = result.Data!.Id },
+                result.Data.ToExpenseResponse());
         }
 
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid travelPlanId, Guid id, UpdateExpenseDto dto)
         {
             if (dto.Amount < 0)
-                return BadRequest("Amount cannot be negative.");
+                return BadRequest("Iznos ne može biti negativan.");
 
             var ownershipResult = await EnsurePlanOwnership(travelPlanId);
             if (ownershipResult is not null)
@@ -110,41 +112,16 @@ namespace TravelPlanner.WebApi.Controllers
 
         private async Task<IActionResult?> EnsurePlanOwnership(Guid travelPlanId)
         {
-            var ownerId = GetOwnerId();
+            var ownerId = User.GetUserId();
             var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
 
             if (plan is null)
-                return NotFound("Travel plan not found.");
+                return NotFound("Plan putovanja nije pronađen.");
 
-            if (plan.OwnerId != ownerId && !IsAdmin())
+            if (plan.OwnerId != ownerId && !User.IsAdminUser())
                 return Forbid();
 
             return null;
-        }
-
-        private Guid GetOwnerId()
-        {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
-            return Guid.Parse(claim!.Value);
-        }
-
-        private bool IsAdmin()
-        {
-            return User.IsInRole("Admin");
-        }
-
-        private static ExpenseResponseDto MapToResponse(ExpenseData expense)
-        {
-            return new ExpenseResponseDto
-            {
-                Id = expense.Id,
-                TravelPlanId = expense.TravelPlanId,
-                Name = expense.Name,
-                Category = expense.Category,
-                Amount = expense.Amount,
-                Date = expense.Date,
-                Description = expense.Description
-            };
         }
     }
 }

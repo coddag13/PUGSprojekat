@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using TravelPlanner.Common.Enums;
 using TravelPlanner.Infrastructure.Persistence;
 using TravelPlanner.WebApi.DTOs.Admin;
+using TravelPlanner.WebApi.Extensions;
 
 namespace TravelPlanner.WebApi.Controllers
 {
@@ -61,11 +60,11 @@ namespace TravelPlanner.WebApi.Controllers
         public async Task<IActionResult> UpdateUser(Guid id, UpdateUserRoleDto dto)
         {
             if (!Enum.TryParse<UserRole>(dto.Role, true, out var parsedRole))
-                return BadRequest("Invalid role.");
+                return BadRequest("Uloga nije ispravna.");
 
-            var currentUserId = GetCurrentUserId();
+            var currentUserId = User.GetUserId();
             if (currentUserId == id && parsedRole != UserRole.Admin)
-                return BadRequest("Admin cannot remove their own admin role.");
+                return BadRequest("Administrator ne može ukloniti svoju administratorsku ulogu.");
 
             var user = await _authDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (user is null)
@@ -75,7 +74,7 @@ namespace TravelPlanner.WebApi.Controllers
             {
                 var adminCount = await _authDb.Users.CountAsync(u => u.Role == UserRole.Admin);
                 if (adminCount <= 1)
-                    return BadRequest("At least one admin account must remain in the system.");
+                    return BadRequest("U sistemu mora ostati najmanje jedan administratorski nalog.");
             }
 
             user.Role = parsedRole;
@@ -87,9 +86,9 @@ namespace TravelPlanner.WebApi.Controllers
         [HttpDelete("users/{id:guid}")]
         public async Task<IActionResult> DeleteUser(Guid id)
         {
-            var currentUserId = GetCurrentUserId();
+            var currentUserId = User.GetUserId();
             if (currentUserId == id)
-                return BadRequest("Admin cannot delete their own account.");
+                return BadRequest("Administrator ne može obrisati svoj nalog.");
 
             var user = await _authDb.Users.FirstOrDefaultAsync(u => u.Id == id);
             if (user is null)
@@ -99,7 +98,7 @@ namespace TravelPlanner.WebApi.Controllers
             {
                 var adminCount = await _authDb.Users.CountAsync(u => u.Role == UserRole.Admin);
                 if (adminCount <= 1)
-                    return BadRequest("At least one admin account must remain in the system.");
+                    return BadRequest("U sistemu mora ostati najmanje jedan administratorski nalog.");
             }
 
             var planIds = await _planDb.TravelPlans
@@ -173,12 +172,6 @@ namespace TravelPlanner.WebApi.Controllers
             await _planDb.SaveChangesAsync();
 
             return NoContent();
-        }
-
-        private Guid GetCurrentUserId()
-        {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
-            return Guid.Parse(claim!.Value);
         }
     }
 }

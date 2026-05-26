@@ -1,12 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ServiceFabric.Services.Client;
 using Microsoft.ServiceFabric.Services.Remoting.Client;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using TravelPlanner.Common.Interfaces;
-using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.ShareTokens;
+using TravelPlanner.WebApi.Extensions;
+using TravelPlanner.WebApi.Mappings;
 
 namespace TravelPlanner.WebApi.Controllers
 {
@@ -31,7 +30,7 @@ namespace TravelPlanner.WebApi.Controllers
                 return ownershipResult;
 
             var tokens = await SharingService.GetTokensByPlanAsync(travelPlanId);
-            return Ok(tokens.Select(MapToResponse));
+            return Ok(tokens.Select(token => token.ToShareTokenResponse()));
         }
 
         [HttpPost]
@@ -45,7 +44,7 @@ namespace TravelPlanner.WebApi.Controllers
             if (!result.Success)
                 return BadRequest(result.Error);
 
-            return Ok(MapToResponse(result.Data!));
+            return Ok(result.Data!.ToShareTokenResponse());
         }
 
         [HttpDelete("{id:guid}")]
@@ -64,39 +63,16 @@ namespace TravelPlanner.WebApi.Controllers
 
         private async Task<IActionResult?> EnsurePlanOwnership(Guid travelPlanId)
         {
-            var ownerId = GetOwnerId();
+            var ownerId = User.GetUserId();
             var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
 
             if (plan is null)
-                return NotFound("Travel plan not found.");
+                return NotFound("Plan putovanja nije pronađen.");
 
-            if (plan.OwnerId != ownerId && !IsAdmin())
+            if (plan.OwnerId != ownerId && !User.IsAdminUser())
                 return Forbid();
 
             return null;
-        }
-
-        private Guid GetOwnerId()
-        {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
-            return Guid.Parse(claim!.Value);
-        }
-
-        private bool IsAdmin()
-        {
-            return User.IsInRole("Admin");
-        }
-
-        private static ShareTokenResponseDto MapToResponse(ShareTokenData token)
-        {
-            return new ShareTokenResponseDto
-            {
-                Id = token.Id,
-                TravelPlanId = token.TravelPlanId,
-                Token = token.Token,
-                AccessType = token.AccessType,
-                ExpiresAt = token.ExpiresAt
-            };
         }
     }
 }

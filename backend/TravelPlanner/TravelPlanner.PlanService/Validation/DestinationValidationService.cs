@@ -8,13 +8,13 @@ namespace TravelPlanner.PlanService.Validation
         public string? ValidateFields(string name, string location, DateTime arrivalDate, DateTime departureDate)
         {
             if (string.IsNullOrWhiteSpace(name))
-                return "Destination name is required.";
+                return "Naziv destinacije je obavezan.";
 
             if (string.IsNullOrWhiteSpace(location))
-                return "Destination location is required.";
+                return "Lokacija destinacije je obavezna.";
 
             if (departureDate < arrivalDate)
-                return "Departure date cannot be before arrival date.";
+                return "Datum odlaska ne može biti prije datuma dolaska.";
 
             return null;
         }
@@ -28,13 +28,13 @@ namespace TravelPlanner.PlanService.Validation
         {
             var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
             if (plan is null)
-                return "Travel plan not found.";
+                return "Plan putovanja nije pronađen.";
 
             if (arrivalDate.Date < plan.StartDate.Date)
-                return "Arrival date cannot be before the start of the travel plan.";
+                return "Datum dolaska ne može biti prije početka plana putovanja.";
 
             if (departureDate.Date > plan.EndDate.Date)
-                return "Departure date cannot be after the end of the travel plan.";
+                return "Datum odlaska ne može biti poslije kraja plana putovanja.";
 
             var overlaps = await db.Destinations.AnyAsync(d =>
                 d.TravelPlanId == travelPlanId &&
@@ -42,7 +42,7 @@ namespace TravelPlanner.PlanService.Validation
                 arrivalDate.Date <= d.DepartureDate.Date &&
                 departureDate.Date >= d.ArrivalDate.Date);
 
-            return overlaps ? "Destination dates overlap with an existing destination." : null;
+            return overlaps ? "Datumi destinacije se preklapaju sa postojećom destinacijom." : null;
         }
     }
 }

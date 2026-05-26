@@ -10,16 +10,16 @@ namespace TravelPlanner.PlanService.Validation
         public string? ValidateFields(string name, string location, decimal estimatedCost, ActivityStatus status)
         {
             if (string.IsNullOrWhiteSpace(name))
-                return "Activity name is required.";
+                return "Naziv aktivnosti je obavezan.";
 
             if (string.IsNullOrWhiteSpace(location))
-                return "Activity location is required.";
+                return "Lokacija aktivnosti je obavezna.";
 
             if (estimatedCost < 0)
-                return "Estimated cost cannot be negative.";
+                return "Procijenjeni trošak ne može biti negativan.";
 
             if (!Enum.IsDefined(typeof(ActivityStatus), status))
-                return "Invalid activity status.";
+                return "Status aktivnosti nije ispravan.";
 
             return null;
         }
@@ -34,10 +34,10 @@ namespace TravelPlanner.PlanService.Validation
         {
             var plan = await db.TravelPlans.FirstOrDefaultAsync(p => p.Id == travelPlanId);
             if (plan is null)
-                return "Travel plan not found.";
+                return "Plan putovanja nije pronađen.";
 
             if (date.Date < plan.StartDate.Date || date.Date > plan.EndDate.Date)
-                return "Activity date must be within the travel plan period.";
+                return "Datum aktivnosti mora biti unutar perioda plana putovanja.";
 
             if (destinationId.HasValue)
             {
@@ -45,10 +45,10 @@ namespace TravelPlanner.PlanService.Validation
                     .FirstOrDefaultAsync(d => d.Id == destinationId.Value && d.TravelPlanId == travelPlanId);
 
                 if (destination is null)
-                    return "Destination not found in this travel plan.";
+                    return "Destinacija nije pronađena u ovom planu putovanja.";
 
                 if (date.Date < destination.ArrivalDate.Date || date.Date > destination.DepartureDate.Date)
-                    return "Activity date must be within the selected destination period.";
+                    return "Datum aktivnosti mora biti unutar perioda odabrane destinacije.";
             }
 
             var hasConflict = await db.PlanActivities.AnyAsync(a =>
@@ -57,7 +57,7 @@ namespace TravelPlanner.PlanService.Validation
                 a.Date.Date == date.Date &&
                 a.Time == time);
 
-            return hasConflict ? "Another activity already exists at the same date and time." : null;
+            return hasConflict ? "Već postoji aktivnost u istom datumu i terminu." : null;
         }
 
         public async Task<string?> ValidateBudgetAsync(
@@ -73,7 +73,7 @@ namespace TravelPlanner.PlanService.Validation
                 estimatedCost,
                 excludeActivityId);
 
-            return wouldExceedBudget ? "This activity would exceed the planned budget." : null;
+            return wouldExceedBudget ? "Ova aktivnost bi prešla planirani budžet." : null;
         }
     }
 }

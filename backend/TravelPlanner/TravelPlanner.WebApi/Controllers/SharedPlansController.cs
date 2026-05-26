@@ -7,11 +7,9 @@ using TravelPlanner.Common.Interfaces;
 using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.Activities;
 using TravelPlanner.WebApi.DTOs.ChecklistItems;
-using TravelPlanner.WebApi.DTOs.Destinations;
-using TravelPlanner.WebApi.DTOs.Expenses;
-using TravelPlanner.WebApi.DTOs.Reminders;
 using TravelPlanner.WebApi.DTOs.Shared;
-using TravelPlanner.WebApi.DTOs.TravelPlans;
+using TravelPlanner.WebApi.Extensions;
+using TravelPlanner.WebApi.Mappings;
 
 namespace TravelPlanner.WebApi.Controllers
 {
@@ -64,7 +62,7 @@ namespace TravelPlanner.WebApi.Controllers
                 dto.Status);
 
             if (!updated)
-                return BadRequest("Activity status could not be updated.");
+                return BadRequest("Status aktivnosti nije bilo moguće izmijeniti.");
 
             return NoContent();
         }
@@ -81,7 +79,7 @@ namespace TravelPlanner.WebApi.Controllers
             if (!result.Success)
                 return BadRequest(result.Error);
 
-            return Ok(MapToChecklistResponse(result.Data!));
+            return Ok(result.Data!.ToChecklistResponse());
         }
 
         [HttpPut("checklist-items/{id:guid}")]
@@ -99,7 +97,7 @@ namespace TravelPlanner.WebApi.Controllers
                 dto.IsCompleted);
 
             if (!updated)
-                return BadRequest("Checklist item could not be updated.");
+                return BadRequest("Stavku liste nije bilo moguće izmijeniti.");
 
             return NoContent();
         }
@@ -111,7 +109,7 @@ namespace TravelPlanner.WebApi.Controllers
                 return (null, Unauthorized(tokenResult.Error));
 
             if (tokenResult.Data!.AccessType != ShareAccessType.Edit)
-                return (null, StatusCode(StatusCodes.Status403Forbidden, "This token has view-only access."));
+                return (null, StatusCode(StatusCodes.Status403Forbidden, "Ovaj token ima samo pristup za pregled."));
 
             return (tokenResult.Data, null);
         }
@@ -119,7 +117,7 @@ namespace TravelPlanner.WebApi.Controllers
         private async Task<SharedPlanResponseDto> BuildSharedPlanResponseAsync(ShareTokenData shareToken)
         {
             var plan = await PlanService.GetPlanByIdAsync(shareToken.TravelPlanId)
-                ?? throw new InvalidOperationException("Travel plan not found for this token.");
+                ?? throw new InvalidOperationException("Plan putovanja nije pronađen za ovaj token.");
 
             var destinations = await PlanService.GetDestinationsAsync(shareToken.TravelPlanId);
             var activities = await PlanService.GetActivitiesAsync(shareToken.TravelPlanId);
@@ -127,99 +125,13 @@ namespace TravelPlanner.WebApi.Controllers
             var checklistItems = await PlanService.GetChecklistItemsAsync(shareToken.TravelPlanId);
             var reminders = await PlanService.GetRemindersAsync(shareToken.TravelPlanId);
 
-            return new SharedPlanResponseDto
-            {
-                AccessType = shareToken.AccessType,
-                Plan = MapToTravelPlanResponse(plan),
-                Destinations = destinations.Select(MapToDestinationResponse).ToList(),
-                Activities = activities.Select(MapToActivityResponse).ToList(),
-                Expenses = expenses.Select(MapToExpenseResponse).ToList(),
-                ChecklistItems = checklistItems.Select(MapToChecklistResponse).ToList(),
-                Reminders = reminders.Select(MapToReminderResponse).ToList()
-            };
-        }
-
-        private static TravelPlanResponseDto MapToTravelPlanResponse(TravelPlanData plan)
-        {
-            return new TravelPlanResponseDto
-            {
-                Id = plan.Id,
-                OwnerId = plan.OwnerId,
-                Title = plan.Title,
-                Description = plan.Description,
-                StartDate = plan.StartDate,
-                EndDate = plan.EndDate,
-                PlannedBudget = plan.PlannedBudget,
-                Notes = plan.Notes
-            };
-        }
-
-        private static DestinationResponseDto MapToDestinationResponse(DestinationData destination)
-        {
-            return new DestinationResponseDto
-            {
-                Id = destination.Id,
-                TravelPlanId = destination.TravelPlanId,
-                Name = destination.Name,
-                Location = destination.Location,
-                ArrivalDate = destination.ArrivalDate,
-                DepartureDate = destination.DepartureDate,
-                Description = destination.Description
-            };
-        }
-
-        private static ActivityResponseDto MapToActivityResponse(ActivityData activity)
-        {
-            return new ActivityResponseDto
-            {
-                Id = activity.Id,
-                TravelPlanId = activity.TravelPlanId,
-                DestinationId = activity.DestinationId,
-                Name = activity.Name,
-                Date = activity.Date,
-                Time = activity.Time,
-                Location = activity.Location,
-                Description = activity.Description,
-                EstimatedCost = activity.EstimatedCost,
-                Status = activity.Status
-            };
-        }
-
-        private static ExpenseResponseDto MapToExpenseResponse(ExpenseData expense)
-        {
-            return new ExpenseResponseDto
-            {
-                Id = expense.Id,
-                TravelPlanId = expense.TravelPlanId,
-                Name = expense.Name,
-                Category = expense.Category,
-                Amount = expense.Amount,
-                Date = expense.Date,
-                Description = expense.Description
-            };
-        }
-
-        private static ChecklistItemResponseDto MapToChecklistResponse(ChecklistItemData item)
-        {
-            return new ChecklistItemResponseDto
-            {
-                Id = item.Id,
-                TravelPlanId = item.TravelPlanId,
-                Text = item.Text,
-                IsCompleted = item.IsCompleted
-            };
-        }
-
-        private static ReminderResponseDto MapToReminderResponse(ReminderData reminder)
-        {
-            return new ReminderResponseDto
-            {
-                Id = reminder.Id,
-                TravelPlanId = reminder.TravelPlanId,
-                Title = reminder.Title,
-                RemindAt = reminder.RemindAt,
-                IsCompleted = reminder.IsCompleted
-            };
+            return shareToken.ToSharedPlanResponse(
+                plan,
+                destinations,
+                activities,
+                expenses,
+                checklistItems,
+                reminders);
         }
     }
 }

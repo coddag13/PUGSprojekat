@@ -1,3 +1,5 @@
+import { createFormValidationHandlers } from '../../utils/formValidation'
+
 function ExpenseForm({
   form,
   plan,
@@ -10,6 +12,8 @@ function ExpenseForm({
   onCancel,
   showCancel = false,
 }) {
+  const formValidation = createFormValidationHandlers()
+
   return (
     <section className="glass-panel rounded-[2.2rem] p-6">
       <div className="mb-6 flex items-start justify-between gap-3">
@@ -23,7 +27,7 @@ function ExpenseForm({
         </div>
       </div>
 
-      <form className="mt-6 space-y-4" onSubmit={onSubmit}>
+      <form className="mt-6 space-y-4" onSubmit={onSubmit} {...formValidation}>
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">Naziv troška</span>
           <input

@@ -246,7 +246,7 @@ namespace TravelPlanner.WebApi.Reports
                 DrawFilledRectangle(Margin, PageHeight - 122, PageWidth - (Margin * 2), 80, 0.07f, 0.10f, 0.19f);
                 DrawFilledRectangle(PageWidth - 180, PageHeight - 112, 96, 60, 0.98f, 0.79f, 0.15f);
 
-                DrawText("Travel Planner", Margin + 18, PageHeight - 74, 24, bold: true, r: 1f, g: 1f, b: 1f);
+                DrawText("Planer putovanja", Margin + 18, PageHeight - 74, 24, bold: true, r: 1f, g: 1f, b: 1f);
                 DrawText("Izvjestaj plana putovanja", Margin + 18, PageHeight - 96, 11, bold: false, r: 0.83f, g: 0.88f, b: 0.96f);
                 DrawText(plan.Title, Margin + 18, PageHeight - 112, 18, bold: true, r: 0.99f, g: 0.82f, b: 0.18f);
 

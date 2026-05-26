@@ -2,11 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ServiceFabric.Services.Client;
 using Microsoft.ServiceFabric.Services.Remoting.Client;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using TravelPlanner.Common.Interfaces;
-using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.Reminders;
+using TravelPlanner.WebApi.Extensions;
+using TravelPlanner.WebApi.Mappings;
 
 namespace TravelPlanner.WebApi.Controllers
 {
@@ -28,7 +27,7 @@ namespace TravelPlanner.WebApi.Controllers
                 return ownershipResult;
 
             var reminders = await PlanService.GetRemindersAsync(travelPlanId);
-            return Ok(reminders.Select(MapToResponse));
+            return Ok(reminders.Select(reminder => reminder.ToReminderResponse()));
         }
 
         [HttpGet("{id:guid}")]
@@ -42,7 +41,7 @@ namespace TravelPlanner.WebApi.Controllers
             if (reminder is null)
                 return NotFound();
 
-            return Ok(MapToResponse(reminder));
+            return Ok(reminder.ToReminderResponse());
         }
 
         [HttpPost]
@@ -56,7 +55,10 @@ namespace TravelPlanner.WebApi.Controllers
             if (!result.Success)
                 return BadRequest(result.Error);
 
-            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = result.Data!.Id }, MapToResponse(result.Data));
+            return CreatedAtAction(
+                nameof(GetById),
+                new { travelPlanId, id = result.Data!.Id },
+                result.Data.ToReminderResponse());
         }
 
         [HttpPut("{id:guid}")]
@@ -89,39 +91,16 @@ namespace TravelPlanner.WebApi.Controllers
 
         private async Task<IActionResult?> EnsurePlanOwnership(Guid travelPlanId)
         {
-            var ownerId = GetOwnerId();
+            var ownerId = User.GetUserId();
             var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
 
             if (plan is null)
                 return NotFound("Plan putovanja nije pronađen.");
 
-            if (plan.OwnerId != ownerId && !IsAdmin())
+            if (plan.OwnerId != ownerId && !User.IsAdminUser())
                 return Forbid();
 
             return null;
-        }
-
-        private Guid GetOwnerId()
-        {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
-            return Guid.Parse(claim!.Value);
-        }
-
-        private bool IsAdmin()
-        {
-            return User.IsInRole("Admin");
-        }
-
-        private static ReminderResponseDto MapToResponse(ReminderData reminder)
-        {
-            return new ReminderResponseDto
-            {
-                Id = reminder.Id,
-                TravelPlanId = reminder.TravelPlanId,
-                Title = reminder.Title,
-                RemindAt = reminder.RemindAt,
-                IsCompleted = reminder.IsCompleted
-            };
         }
     }
 }

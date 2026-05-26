@@ -10,19 +10,19 @@ namespace TravelPlanner.AuthService.Validation
         public string? ValidateRegistration(string firstName, string lastName, string email, string password)
         {
             if (string.IsNullOrWhiteSpace(firstName))
-                return "First name is required.";
+                return "Ime je obavezno.";
 
             if (string.IsNullOrWhiteSpace(lastName))
-                return "Last name is required.";
+                return "Prezime je obavezno.";
 
             if (string.IsNullOrWhiteSpace(email))
-                return "Email is required.";
+                return "Email adresa je obavezna.";
 
             if (string.IsNullOrWhiteSpace(password))
-                return "Password is required.";
+                return "Lozinka je obavezna.";
 
             if (password.Length < 6)
-                return "Password must be at least 6 characters long.";
+                return "Lozinka mora imati najmanje 6 karaktera.";
 
             return null;
         }
@@ -30,7 +30,7 @@ namespace TravelPlanner.AuthService.Validation
         public string? ValidateLogin(string email, string password)
         {
             return string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)
-                ? "Email and password are required."
+                ? "Email adresa i lozinka su obavezni."
                 : null;
         }
     }

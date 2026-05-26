@@ -1,3 +1,5 @@
+import { createFormValidationHandlers } from '../../utils/formValidation'
+
 function ReminderForm({
   form,
   error,
@@ -9,6 +11,8 @@ function ReminderForm({
   onCancel,
   showCancel = false,
 }) {
+  const formValidation = createFormValidationHandlers()
+
   return (
     <section className="glass-panel rounded-[2.2rem] p-6">
       <div className="mb-6 flex items-start justify-between gap-3">
@@ -22,7 +26,7 @@ function ReminderForm({
         </div>
       </div>
 
-      <form className="space-y-4" onSubmit={onSubmit}>
+      <form className="space-y-4" onSubmit={onSubmit} {...formValidation}>
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">Naslov podsjetnika</span>
           <input

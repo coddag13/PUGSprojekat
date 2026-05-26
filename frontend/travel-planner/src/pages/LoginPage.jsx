@@ -2,10 +2,12 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { createEmptyLoginForm } from '../models'
+import { createFormValidationHandlers } from '../utils/formValidation'
 
 function LoginPage() {
   const navigate = useNavigate()
   const { login } = useAuth()
+  const formValidation = createFormValidationHandlers()
 
   const [form, setForm] = useState(createEmptyLoginForm)
   const [error, setError] = useState('')
@@ -43,10 +45,10 @@ function LoginPage() {
         <section className="dark-signal-panel rounded-[2.5rem] p-8 text-white md:p-12">
           <div className="flex flex-wrap items-center gap-4">
             <span className="signal-chip inline-flex rounded-full px-4 py-1.5 text-sm font-semibold text-amber-200">
-              Travel Planner
+              Planer putovanja
             </span>
             <span className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs uppercase tracking-[0.35em] text-sky-200">
-              Route Intelligence
+              Pametna ruta
             </span>
           </div>
 
@@ -126,7 +128,7 @@ function LoginPage() {
                 Nastavi sa planiranjem naredne rute, uređivanjem aktivnosti i pregledom troškova.
               </p>
 
-              <form className="mt-9 space-y-5" onSubmit={handleSubmit}>
+              <form className="mt-9 space-y-5" onSubmit={handleSubmit} {...formValidation}>
                 <label className="block">
                   <span className="mb-2 block text-sm font-medium text-slate-200">Email adresa</span>
                   <input

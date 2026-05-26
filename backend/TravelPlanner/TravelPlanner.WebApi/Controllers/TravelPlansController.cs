@@ -1,11 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ServiceFabric.Services.Client;
 using Microsoft.ServiceFabric.Services.Remoting.Client;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using TravelPlanner.Common.Interfaces;
 using TravelPlanner.WebApi.DTOs.TravelPlans;
+using TravelPlanner.WebApi.Extensions;
+using TravelPlanner.WebApi.Mappings;
 using TravelPlanner.WebApi.Reports;
 
 namespace TravelPlanner.WebApi.Controllers
@@ -26,37 +26,37 @@ namespace TravelPlanner.WebApi.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var ownerId = GetOwnerId();
+            var ownerId = User.GetUserId();
             var plans = await PlanService.GetAllPlansByOwnerAsync(ownerId);
 
-            return Ok(plans.Select(MapToResponse));
+            return Ok(plans.Select(plan => plan.ToTravelPlanResponse()));
         }
 
         [HttpGet("{id:guid}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var ownerId = GetOwnerId();
+            var ownerId = User.GetUserId();
             var plan = await PlanService.GetPlanByIdAsync(id);
 
             if (plan is null)
                 return NotFound();
 
-            if (plan.OwnerId != ownerId && !IsAdmin())
+            if (plan.OwnerId != ownerId && !User.IsAdminUser())
                 return Forbid();
 
-            return Ok(MapToResponse(plan));
+            return Ok(plan.ToTravelPlanResponse());
         }
 
         [HttpGet("{id:guid}/reports/summary")]
         public async Task<IActionResult> DownloadSummaryReport(Guid id)
         {
-            var ownerId = GetOwnerId();
+            var ownerId = User.GetUserId();
             var plan = await PlanService.GetPlanByIdAsync(id);
 
             if (plan is null)
                 return NotFound();
 
-            if (plan.OwnerId != ownerId && !IsAdmin())
+            if (plan.OwnerId != ownerId && !User.IsAdminUser())
                 return Forbid();
 
             var destinations = await PlanService.GetDestinationsAsync(id);
@@ -75,12 +75,12 @@ namespace TravelPlanner.WebApi.Controllers
         public async Task<IActionResult> Create(CreateTravelPlanDto dto)
         {
             if (dto.EndDate < dto.StartDate)
-                return BadRequest("End date cannot be before start date.");
+                return BadRequest("Krajnji datum ne može biti prije početnog datuma.");
 
             if (dto.PlannedBudget < 0)
-                return BadRequest("Budget cannot be negative.");
+                return BadRequest("Budžet ne može biti negativan.");
 
-            var ownerId = GetOwnerId();
+            var ownerId = User.GetUserId();
             var result = await PlanService.CreatePlanAsync(
                 ownerId,
                 dto.Title,
@@ -93,25 +93,25 @@ namespace TravelPlanner.WebApi.Controllers
             if (!result.Success)
                 return BadRequest(result.Error);
 
-            return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, MapToResponse(result.Data));
+            return CreatedAtAction(nameof(GetById), new { id = result.Data!.Id }, result.Data.ToTravelPlanResponse());
         }
 
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid id, UpdateTravelPlanDto dto)
         {
             if (dto.EndDate < dto.StartDate)
-                return BadRequest("End date cannot be before start date.");
+                return BadRequest("Krajnji datum ne može biti prije početnog datuma.");
 
             if (dto.PlannedBudget < 0)
-                return BadRequest("Budget cannot be negative.");
+                return BadRequest("Budžet ne može biti negativan.");
 
-            var ownerId = GetOwnerId();
+            var ownerId = User.GetUserId();
             var existingPlan = await PlanService.GetPlanByIdAsync(id);
 
             if (existingPlan is null)
                 return NotFound();
 
-            if (existingPlan.OwnerId != ownerId && !IsAdmin())
+            if (existingPlan.OwnerId != ownerId && !User.IsAdminUser())
                 return Forbid();
 
             var updated = await PlanService.UpdatePlanAsync(
@@ -132,13 +132,13 @@ namespace TravelPlanner.WebApi.Controllers
         [HttpDelete("{id:guid}")]
         public async Task<IActionResult> Delete(Guid id)
         {
-            var ownerId = GetOwnerId();
+            var ownerId = User.GetUserId();
             var existingPlan = await PlanService.GetPlanByIdAsync(id);
 
             if (existingPlan is null)
                 return NotFound();
 
-            if (existingPlan.OwnerId != ownerId && !IsAdmin())
+            if (existingPlan.OwnerId != ownerId && !User.IsAdminUser())
                 return Forbid();
 
             var deleted = await PlanService.DeletePlanAsync(id);
@@ -148,32 +148,6 @@ namespace TravelPlanner.WebApi.Controllers
             await SharingService.DeleteTokensByPlanAsync(id);
 
             return NoContent();
-        }
-
-        private static TravelPlanResponseDto MapToResponse(TravelPlanner.Common.Models.TravelPlanData plan)
-        {
-            return new TravelPlanResponseDto
-            {
-                Id = plan.Id,
-                OwnerId = plan.OwnerId,
-                Title = plan.Title,
-                Description = plan.Description,
-                StartDate = plan.StartDate,
-                EndDate = plan.EndDate,
-                PlannedBudget = plan.PlannedBudget,
-                Notes = plan.Notes
-            };
-        }
-
-        private Guid GetOwnerId()
-        {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
-            return Guid.Parse(claim!.Value);
-        }
-
-        private bool IsAdmin()
-        {
-            return User.IsInRole("Admin");
         }
 
         private static string SanitizeFileName(string value)

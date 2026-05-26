@@ -9,13 +9,13 @@ namespace TravelPlanner.PlanService.Validation
         public string? ValidateCreate(string title, DateTime startDate, DateTime endDate, decimal plannedBudget)
         {
             if (string.IsNullOrWhiteSpace(title))
-                return "Title is required.";
+                return "Naziv plana je obavezan.";
 
             if (endDate < startDate)
-                return "End date cannot be before start date.";
+                return "Krajnji datum ne može biti prije početnog datuma.";
 
             if (plannedBudget < 0)
-                return "Planned budget cannot be negative.";
+                return "Planirani budžet ne može biti negativan.";
 
             return null;
         }

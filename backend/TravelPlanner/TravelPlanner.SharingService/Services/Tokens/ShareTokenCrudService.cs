@@ -48,7 +48,7 @@ namespace TravelPlanner.SharingService.Services.Tokens
 
             var plan = await _planLookupService.GetPlanByIdAsync(travelPlanId);
             if (plan is null)
-                return ServiceResponse<ShareTokenData>.Fail("Travel plan not found.");
+                return ServiceResponse<ShareTokenData>.Fail("Plan putovanja nije pronađen.");
 
             await using var db = _dbContextFactory.CreateDbContext();
 
@@ -97,10 +97,10 @@ namespace TravelPlanner.SharingService.Services.Tokens
                 .FirstOrDefaultAsync(t => t.Token == token);
 
             if (shareToken is null)
-                return ServiceResponse<ShareTokenData>.Fail("Token not found.");
+                return ServiceResponse<ShareTokenData>.Fail("Token nije pronađen.");
 
             if (shareToken.ExpiresAt < DateTime.UtcNow)
-                return ServiceResponse<ShareTokenData>.Fail("Token has expired.");
+                return ServiceResponse<ShareTokenData>.Fail("Token je istekao.");
 
             return ServiceResponse<ShareTokenData>.Ok(ShareTokenMapper.Map(shareToken));
         }

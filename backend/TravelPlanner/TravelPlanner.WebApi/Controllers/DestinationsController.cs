@@ -1,12 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.ServiceFabric.Services.Client;
 using Microsoft.ServiceFabric.Services.Remoting.Client;
-using System.IdentityModel.Tokens.Jwt;
-using System.Security.Claims;
 using TravelPlanner.Common.Interfaces;
-using TravelPlanner.Common.Models;
 using TravelPlanner.WebApi.DTOs.Destinations;
+using TravelPlanner.WebApi.Extensions;
+using TravelPlanner.WebApi.Mappings;
 
 namespace TravelPlanner.WebApi.Controllers
 {
@@ -28,7 +27,7 @@ namespace TravelPlanner.WebApi.Controllers
                 return ownershipResult;
 
             var items = await PlanService.GetDestinationsAsync(travelPlanId);
-            return Ok(items.Select(MapToResponse));
+            return Ok(items.Select(destination => destination.ToDestinationResponse()));
         }
 
         [HttpGet("{id:guid}")]
@@ -42,14 +41,14 @@ namespace TravelPlanner.WebApi.Controllers
             if (destination is null)
                 return NotFound();
 
-            return Ok(MapToResponse(destination));
+            return Ok(destination.ToDestinationResponse());
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(Guid travelPlanId, CreateDestinationDto dto)
         {
             if (dto.DepartureDate < dto.ArrivalDate)
-                return BadRequest("Departure date cannot be before arrival date.");
+                return BadRequest("Datum odlaska ne može biti prije datuma dolaska.");
 
             var ownershipResult = await EnsurePlanOwnership(travelPlanId);
             if (ownershipResult is not null)
@@ -66,14 +65,17 @@ namespace TravelPlanner.WebApi.Controllers
             if (!result.Success)
                 return BadRequest(result.Error);
 
-            return CreatedAtAction(nameof(GetById), new { travelPlanId, id = result.Data!.Id }, MapToResponse(result.Data));
+            return CreatedAtAction(
+                nameof(GetById),
+                new { travelPlanId, id = result.Data!.Id },
+                result.Data.ToDestinationResponse());
         }
 
         [HttpPut("{id:guid}")]
         public async Task<IActionResult> Update(Guid travelPlanId, Guid id, UpdateDestinationDto dto)
         {
             if (dto.DepartureDate < dto.ArrivalDate)
-                return BadRequest("Departure date cannot be before arrival date.");
+                return BadRequest("Datum odlaska ne može biti prije datuma dolaska.");
 
             var ownershipResult = await EnsurePlanOwnership(travelPlanId);
             if (ownershipResult is not null)
@@ -110,41 +112,16 @@ namespace TravelPlanner.WebApi.Controllers
 
         private async Task<IActionResult?> EnsurePlanOwnership(Guid travelPlanId)
         {
-            var ownerId = GetOwnerId();
+            var ownerId = User.GetUserId();
             var plan = await PlanService.GetPlanByIdAsync(travelPlanId);
 
             if (plan is null)
-                return NotFound("Travel plan not found.");
+                return NotFound("Plan putovanja nije pronađen.");
 
-            if (plan.OwnerId != ownerId && !IsAdmin())
+            if (plan.OwnerId != ownerId && !User.IsAdminUser())
                 return Forbid();
 
             return null;
-        }
-
-        private Guid GetOwnerId()
-        {
-            var claim = User.FindFirst(ClaimTypes.NameIdentifier) ?? User.FindFirst(JwtRegisteredClaimNames.Sub);
-            return Guid.Parse(claim!.Value);
-        }
-
-        private bool IsAdmin()
-        {
-            return User.IsInRole("Admin");
-        }
-
-        private static DestinationResponseDto MapToResponse(DestinationData destination)
-        {
-            return new DestinationResponseDto
-            {
-                Id = destination.Id,
-                TravelPlanId = destination.TravelPlanId,
-                Name = destination.Name,
-                Location = destination.Location,
-                ArrivalDate = destination.ArrivalDate,
-                DepartureDate = destination.DepartureDate,
-                Description = destination.Description
-            };
         }
     }
 }

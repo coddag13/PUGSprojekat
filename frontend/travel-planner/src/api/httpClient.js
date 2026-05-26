@@ -39,7 +39,7 @@ export async function httpClient(path, options = {}) {
     const message =
       typeof data === 'string'
         ? data
-        : data?.error || data?.title || 'Request failed.'
+        : data?.error || data?.title || 'Zahtjev nije uspio.'
 
     throw new Error(message)
   }

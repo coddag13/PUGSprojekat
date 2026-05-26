@@ -6,18 +6,18 @@ namespace TravelPlanner.SharingService.Validation
     {
         public string? ValidateTokenValue(string token)
         {
-            return string.IsNullOrWhiteSpace(token) ? "Token is required." : null;
+            return string.IsNullOrWhiteSpace(token) ? "Token je obavezan." : null;
         }
 
         public string? ValidateExpiry(DateTime expiresAt)
         {
-            return expiresAt <= DateTime.UtcNow ? "Expiry date must be in the future." : null;
+            return expiresAt <= DateTime.UtcNow ? "Datum isteka mora biti u budućnosti." : null;
         }
 
         public string? ValidateTokenBelongsToPlan(ShareTokenData token, Guid travelPlanId)
         {
             return token.TravelPlanId != travelPlanId
-                ? "Token does not belong to this travel plan."
+                ? "Token ne pripada ovom planu putovanja."
                 : null;
         }
     }

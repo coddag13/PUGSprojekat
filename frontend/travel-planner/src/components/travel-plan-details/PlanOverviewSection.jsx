@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { createFormValidationHandlers } from '../../utils/formValidation'
 
 function PlanOverviewSection({
   plan,
@@ -9,6 +10,7 @@ function PlanOverviewSection({
   error,
   allowActions = true,
 }) {
+  const formValidation = createFormValidationHandlers()
   const [isEditing, setIsEditing] = useState(false)
   const [form, setForm] = useState({
     title: '',
@@ -214,7 +216,7 @@ function PlanOverviewSection({
         </div>
       </div>
 
-      <form className="space-y-5" onSubmit={handleSubmit}>
+      <form className="space-y-5" onSubmit={handleSubmit} {...formValidation}>
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">Naziv plana</span>
           <input

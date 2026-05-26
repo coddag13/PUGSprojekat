@@ -1,3 +1,5 @@
+import { createFormValidationHandlers } from '../../utils/formValidation'
+
 function ActivityForm({
   form,
   plan,
@@ -12,6 +14,7 @@ function ActivityForm({
   onCancel,
   showCancel = false,
 }) {
+  const formValidation = createFormValidationHandlers()
   const minDate = selectedDestination
     ? selectedDestination.arrivalDate.slice(0, 10)
     : plan.startDate.slice(0, 10)
@@ -33,7 +36,7 @@ function ActivityForm({
         </div>
       </div>
 
-      <form className="space-y-4" onSubmit={onSubmit}>
+      <form className="space-y-4" onSubmit={onSubmit} {...formValidation}>
         <label className="block">
           <span className="mb-2 block text-sm font-semibold text-slate-700">Naziv aktivnosti</span>
           <input

@@ -9,13 +9,13 @@ namespace TravelPlanner.PlanService.Validation
         public string? ValidateFields(string name, ExpenseCategory category, decimal amount)
         {
             if (string.IsNullOrWhiteSpace(name))
-                return "Expense name is required.";
+                return "Naziv troška je obavezan.";
 
             if (amount < 0)
-                return "Expense amount cannot be negative.";
+                return "Iznos troška ne može biti negativan.";
 
             if (!Enum.IsDefined(typeof(ExpenseCategory), category))
-                return "Invalid expense category.";
+                return "Kategorija troška nije ispravna.";
 
             return null;
         }
@@ -24,10 +24,10 @@ namespace TravelPlanner.PlanService.Validation
         {
             var plan = await db.TravelPlans.FindAsync(travelPlanId);
             if (plan is null)
-                return "Travel plan not found.";
+                return "Plan putovanja nije pronađen.";
 
             return date.Date < plan.StartDate.Date || date.Date > plan.EndDate.Date
-                ? "Expense date must be within the travel plan period."
+                ? "Datum troška mora biti unutar perioda plana putovanja."
                 : null;
         }
 
@@ -44,7 +44,7 @@ namespace TravelPlanner.PlanService.Validation
                 amount,
                 excludeExpenseId);
 
-            return wouldExceedBudget ? "This expense would exceed the planned budget." : null;
+            return wouldExceedBudget ? "Ovaj trošak bi prešao planirani budžet." : null;
         }
     }
 }
