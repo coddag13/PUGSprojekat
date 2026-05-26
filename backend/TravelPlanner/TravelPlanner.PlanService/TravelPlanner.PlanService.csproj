@@ -28,7 +28,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Services\" />
+    <Folder Include="Mappings\" />
+    <Folder Include="Validation\" />
+    <Folder Include="Services\Destinations\" />
+    <Folder Include="Services\Activities\" />
+    <Folder Include="Services\Expenses\" />
+    <Folder Include="Services\Checklist\" />
+    <Folder Include="Services\Reminders\" />
+    <Folder Include="Services\Plans\" />
   </ItemGroup>
 
 </Project>

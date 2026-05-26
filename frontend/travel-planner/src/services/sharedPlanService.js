@@ -26,5 +26,5 @@ export async function updateSharedChecklistItem(token, itemId, payload) {
     method: 'PUT',
     body: payload,
   })
-  return normalizeChecklistItem(data)
+  return data ? normalizeChecklistItem(data) : null
 }

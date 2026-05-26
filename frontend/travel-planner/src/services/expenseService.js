@@ -19,7 +19,7 @@ export async function updateExpense(travelPlanId, expenseId, payload) {
     method: 'PUT',
     body: payload,
   })
-  return normalizeExpense(data)
+  return data ? normalizeExpense(data) : null
 }
 
 export async function deleteExpense(travelPlanId, expenseId) {

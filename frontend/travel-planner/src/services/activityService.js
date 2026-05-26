@@ -19,7 +19,7 @@ export async function updateActivity(travelPlanId, activityId, payload) {
     method: 'PUT',
     body: payload,
   })
-  return normalizeActivity(data)
+  return data ? normalizeActivity(data) : null
 }
 
 export async function deleteActivity(travelPlanId, activityId) {
