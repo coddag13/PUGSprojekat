@@ -18,7 +18,7 @@ Web aplikacija za planiranje putovanja.
 
 ## Arhitektura sistema
 
-![Arhitektura sistema](docs/diagrams/arhitektura-sistema.png)
+![Arhitektura sistema](docs/diagrams/ArhitekturaSistema.png)
 
 \## Tehnologije
 
