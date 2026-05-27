@@ -16,7 +16,9 @@ Web aplikacija za planiranje putovanja.
 
 \- `docs` - dokumentacija, arhitektura i dijagrami
 
+## Arhitektura sistema
 
+![Arhitektura sistema](docs/diagrams/arhitektura-sistema.png)
 
 \## Tehnologije
 
